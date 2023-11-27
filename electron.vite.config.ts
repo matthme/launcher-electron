@@ -17,14 +17,6 @@ export default defineConfig({
       },
     },
   },
-  renderer: {
-    build: {
-      rollupOptions: {
-        input: {
-          admin: resolve(__dirname, 'src/renderer/index.html'),
-          splashscreen: resolve(__dirname, 'src/renderer/splashscreen.html'),
-        },
-      },
-    },
-  },
+  // renderer: {
+  // },
 });
