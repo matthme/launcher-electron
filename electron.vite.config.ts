@@ -12,7 +12,6 @@ export default defineConfig({
         input: {
           admin: resolve(__dirname, 'src/preload/admin.ts'),
           happs: resolve(__dirname, 'src/preload/happs.ts'),
-          splashscreen: resolve(__dirname, 'src/preload/splashscreen.ts'),
         },
       },
     },

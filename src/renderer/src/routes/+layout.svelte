@@ -1,5 +1,22 @@
 <script lang="ts">
 	import '../app.postcss';
+	import { AppShell, AppBar } from '@skeletonlabs/skeleton';
+	import { QueryClientProvider, QueryClient } from '@tanstack/svelte-query';
+
+	const queryClient = new QueryClient();
 </script>
 
-<slot />
+<QueryClientProvider client={queryClient}>
+	<AppShell>
+		<svelte:fragment slot="header">
+			<!-- App Bar -->
+			<AppBar>
+				<svelte:fragment slot="lead">
+					<strong class="text-xl uppercase">Launcher</strong>
+				</svelte:fragment>
+			</AppBar>
+		</svelte:fragment>
+		<!-- Page Route Content -->
+		<slot />
+	</AppShell>
+</QueryClientProvider>

@@ -1,8 +1,12 @@
-// See the Electron documentation for details on how to use preload scripts:
-// https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 import { contextBridge, ipcRenderer } from 'electron';
+import { ELECTRON_API, IPC_EVENTS } from '../types/electron-actions';
 import { ZomeCallUnsignedNapi } from 'hc-launcher-rust-utils';
 
-contextBridge.exposeInMainWorld('electronAPI', {
-  signZomeCall: (zomeCall: ZomeCallUnsignedNapi) => ipcRenderer.invoke('sign-zome-call', zomeCall),
-});
+const contextBridgeApi = {
+  signZomeCall: (zomeCall: ZomeCallUnsignedNapi) =>
+    ipcRenderer.invoke(IPC_EVENTS.SIGN_ZOME_CALL, zomeCall),
+};
+
+export type ContextBridgeApi = typeof contextBridgeApi;
+
+contextBridge.exposeInMainWorld(ELECTRON_API, contextBridgeApi);

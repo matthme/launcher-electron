@@ -25,8 +25,9 @@ export const createOrShowMainWindow = (mainWindow: BrowserWindow | undefined | n
 
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']);
+
+  if (is.dev) {
+    mainWindow.loadURL(`http://localhost:5173`);
   } else {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
   }

@@ -1,19 +1,8 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import {
-  app,
-  BrowserWindow,
-  ipcMain,
-  IpcMainInvokeEvent,
-  net,
-  session,
-  Tray,
-  Menu,
-  nativeImage,
-} from 'electron';
+import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent, Tray, Menu, nativeImage } from 'electron';
 import path from 'path';
 import * as childProcess from 'child_process';
 import { ArgumentParser } from 'argparse';
-import { is } from '@electron-toolkit/utils';
 
 import { LauncherFileSystem } from './filesystem';
 import { holochianBinaries, lairBinary } from './binaries';
@@ -24,8 +13,8 @@ import { LauncherEmitter } from './launcherEmitter';
 import { HolochainManager } from './holochainManager';
 import { setupLogs } from './logs';
 import { DEFAULT_APPS_DIRECTORY, ICONS_DIRECTORY } from './paths';
-import { setLinkOpenHandlers } from './utils';
 import { createHappWindow, createOrShowMainWindow } from './windows';
+import { IPC_EVENTS } from '../types';
 
 const rustUtils = require('hc-launcher-rust-utils');
 // import * as rustUtils from 'hc-launcher-rust-utils';
@@ -120,12 +109,12 @@ app.whenReady().then(async () => {
   tray.setToolTip('Holochain Launcher');
   tray.setContextMenu(contextMenu);
 
-  ipcMain.handle('sign-zome-call', handleSignZomeCall);
-  ipcMain.handle('open-app', async (_e, appId: string) =>
+  ipcMain.handle(IPC_EVENTS.SIGN_ZOME_CALL, handleSignZomeCall);
+  ipcMain.handle(IPC_EVENTS.OPEN_APP, async (_e, appId: string) =>
     createHappWindow(appId, LAUNCHER_FILE_SYSTEM, APP_PORT),
   );
   ipcMain.handle(
-    'install-app',
+    IPC_EVENTS.INSTALL_APP,
     async (_e, filePath: string, appId: string, networkSeed: string) => {
       if (filePath === '#####REQUESTED_KANDO_INSTALLATION#####') {
         console.log('Got request to install KanDo.');
@@ -137,22 +126,22 @@ app.whenReady().then(async () => {
       await HOLOCHAIN_MANAGER!.installApp(filePath, appId, networkSeed);
     },
   );
-  ipcMain.handle('uninstall-app', async (_e, appId: string) => {
+  ipcMain.handle(IPC_EVENTS.UNINSTALL_APP, async (_e, appId: string) => {
     await HOLOCHAIN_MANAGER!.uninstallApp(appId);
   });
-  ipcMain.handle('get-installed-apps', async () => {
+  ipcMain.handle(IPC_EVENTS.GET_INSTALLED_APPS, async () => {
     return HOLOCHAIN_MANAGER!.installedApps;
   });
-  ipcMain.handle('get-app-port', async () => {
+  ipcMain.handle(IPC_EVENTS.GET_APP_PORT, async () => {
     return HOLOCHAIN_MANAGER!.appPort;
   });
-  ipcMain.handle('lair-setup-required', async () => {
+  ipcMain.handle(IPC_EVENTS.LAIR_SETUP_REQUIRED, async () => {
     return !LAUNCHER_FILE_SYSTEM.keystoreInitialized();
   });
-  ipcMain.handle('launch', handleLaunch());
-  ipcMain.handle('ipc-handlers-ready', () => true);
+  ipcMain.handle(IPC_EVENTS.LAUNCH, handleLaunch());
+  ipcMain.handle(IPC_EVENTS.IPC_HANDLERS_READY, () => true);
 
-  MAIN_WINDOW!.webContents.send('ipc-handlers-ready');
+  MAIN_WINDOW!.webContents.send(IPC_EVENTS.IPC_HANDLERS_READY);
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common

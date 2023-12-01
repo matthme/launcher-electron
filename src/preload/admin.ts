@@ -1,26 +1,27 @@
-// See the Electron documentation for details on how to use preload scripts:
-// https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
-import { contextBridge, ipcRenderer } from 'electron';
-import { ZomeCallUnsignedNapi } from 'hc-launcher-rust-utils';
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
+import type { ZomeCallUnsignedNapi } from 'hc-launcher-rust-utils';
+import { ELECTRON_API, IPC_EVENTS } from '../types/electron-actions';
 
-contextBridge.exposeInMainWorld('electronAPI', {
-  getInstalledApps: () => ipcRenderer.invoke('get-installed-apps'),
-  getAppPort: () => ipcRenderer.invoke('get-app-port'),
+const contextBridgeApi = {
+  getInstalledApps: () => ipcRenderer.invoke(IPC_EVENTS.GET_INSTALLED_APPS),
+  getAppPort: () => ipcRenderer.invoke(IPC_EVENTS.GET_APP_PORT),
   installApp: (filePath: string, appId: string, networkSeed?: string) =>
-    ipcRenderer.invoke('install-app', filePath, appId, networkSeed),
-  ipcHandlersReady: () => ipcRenderer.invoke('ipc-handlers-ready'),
-  lairSetupRequired: () => ipcRenderer.invoke('lair-setup-required'),
-  launch: (password: string) => ipcRenderer.invoke('launch', password),
-  openApp: (appId: string) => ipcRenderer.invoke('open-app', appId),
-  onHolochainReady: (callback) => ipcRenderer.on('holochain-ready', callback),
-  onProgressUpdate: (callback) => ipcRenderer.on('loading-progress-update', callback),
-  onIPCHandlersReady: (callback) => ipcRenderer.on('ipc-handlers-ready', callback),
-  signZomeCall: (zomeCall: ZomeCallUnsignedNapi) => ipcRenderer.invoke('sign-zome-call', zomeCall),
-  uninstallApp: (appId: string) => ipcRenderer.invoke('uninstall-app', appId),
-});
+    ipcRenderer.invoke(IPC_EVENTS.INSTALL_APP, filePath, appId, networkSeed),
+  ipcHandlersReady: () => ipcRenderer.invoke(IPC_EVENTS.IPC_HANDLERS_READY),
+  lairSetupRequired: () => ipcRenderer.invoke(IPC_EVENTS.LAIR_SETUP_REQUIRED),
+  launch: (password: string) => ipcRenderer.invoke(IPC_EVENTS.LAUNCH, password),
+  openApp: (appId: string) => ipcRenderer.invoke(IPC_EVENTS.OPEN_APP, appId),
+  onHolochainReady: (callback: (event: IpcRendererEvent, ...args: any[]) => void) =>
+    ipcRenderer.on(IPC_EVENTS.HOLOCHAIN_READY, callback),
+  onProgressUpdate: (callback: (event: IpcRendererEvent, ...args: any[]) => void) =>
+    ipcRenderer.on(IPC_EVENTS.LOADING_PROGRESS_UPDATE, callback),
+  onIPCHandlersReady: (callback: (event: IpcRendererEvent, ...args: any[]) => void) =>
+    ipcRenderer.on(IPC_EVENTS.IPC_HANDLERS_READY, callback),
+  signZomeCall: (zomeCall: ZomeCallUnsignedNapi) =>
+    ipcRenderer.invoke(IPC_EVENTS.SIGN_ZOME_CALL, zomeCall),
+  uninstallApp: (appId: string) => ipcRenderer.invoke(IPC_EVENTS.UNINSTALL_APP, appId),
+};
 
-declare global {
-  interface Window {
-    electronAPI: unknown;
-  }
-}
+export type ContextBridgeApi = typeof contextBridgeApi;
+
+contextBridge.exposeInMainWorld(ELECTRON_API, contextBridgeApi);

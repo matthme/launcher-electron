@@ -20,8 +20,13 @@ const config = {
 			pages: buildDir,
 			assets: buildDir
 		}),
-		prerender: { entries: [] }
-		// outDir: 'testDir'
+		alias: {
+			$services: path.resolve('./src/services'),
+			$utils: path.resolve('./src/utils'),
+			$schemas: path.resolve('./src/schemas'),
+			$api: path.resolve('./src/api'),
+			$components: path.resolve('./src/components')
+		}
 	}
 };
 

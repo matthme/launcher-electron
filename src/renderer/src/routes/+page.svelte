@@ -1,15 +1,46 @@
-<!-- YOU CAN DELETE EVERYTHING IN THIS PAGE -->
+<script lang="ts">
+	// import { get } from 'svelte/store';
+	import { languageStoreInstance } from '$services';
+	import { languageEN } from '$utils';
+	import { client } from '$lib';
+	// import Tooltip from '$components/Tooltip.svelte';
+
+	languageStoreInstance.set(languageEN);
+</script>
 
 <div class="container h-full mx-auto flex justify-center items-center">
-	<div class="space-y-5">
-		<h1 class="h1">Let's get cracking bones!</h1>
-		<p>Start by explorin:</p>
-		<ul>
-			<li><code class="code">/src/routes/+layout.svelte</code> - barebones layout</li>
-			<li><code class="code">/src/app.postcss</code> - app wide css</li>
-			<li>
-				<code class="code">/src/routes/+page.svelte</code> - this page, you can replace the contents
-			</li>
-		</ul>
-	</div>
+	<!-- {#if $query.isLoading}
+		<section class="card w-full">
+			<div class="p-4 space-y-4">
+				<div class="placeholder" />
+				<div class="grid grid-cols-3 gap-8">
+					<div class="placeholder" />
+					<div class="placeholder" />
+					<div class="placeholder" />
+				</div>
+				<div class="grid grid-cols-4 gap-4">
+					<div class="placeholder" />
+					<div class="placeholder" />
+					<div class="placeholder" />
+					<div class="placeholder" />
+				</div>
+			</div>
+		</section>
+	{:else if $query.error}
+		An error has occurred:
+		{$query.error}
+	{:else}
+		<div class="space-y-10 text-center flex flex-col items-center">
+			<h1 class="h1">Welcome to Holochain Launcher.</h1>
+			<h2>Version: ${$query.data}</h2>
+			<h2>Language: {get(languageStoreInstance)}</h2>
+
+			<Tooltip text="This is a custom tooltip for SvelteKit!">Hover over me</Tooltip>
+
+			<button type="button" class="btn variant-filled">
+				<span>Button</span>
+			</button>
+		</div>
+	{/if} -->
+	<span>{bilbo}</span>
 </div>
