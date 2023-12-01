@@ -30,11 +30,26 @@ import { LitElement, css, html } from 'lit';
 import { customElement, query, state } from 'lit/decorators.js';
 import { sharedStyles } from './sharedStyles';
 import { AppInfo, AppWebsocket } from '@holochain/client';
+import './components/password.ts';
 
+enum MainWindowView {
+  InitialLoading,
+  PasswordRequired,
+  MainView,
+}
 @customElement('admin-window')
 export class AdminWindow extends LitElement {
   @state()
   appWebsocket: AppWebsocket | undefined;
+
+  @state()
+  view: MainWindowView = MainWindowView.InitialLoading;
+
+  @state()
+  launchProgressState: string | undefined;
+
+  @state()
+  password: string | undefined | null;
 
   @state()
   installedApps: AppInfo[] = [];
@@ -59,6 +74,39 @@ export class AdminWindow extends LitElement {
 
   @query('#kando-network-seed-input-field')
   kandoNetworkSeedInputField!: HTMLInputElement;
+
+  async firstUpdated() {
+    try {
+      await (window as any).electronAPI.ipcHandlersReady();
+      this.view = MainWindowView.PasswordRequired;
+    } catch (e) {
+      (window as any).electronAPI.onIPCHandlersReady(() => {
+        this.view = MainWindowView.PasswordRequired;
+      });
+    }
+    (window as any).electronAPI.onHolochainReady(async () => {
+      const installedApps = await (window as any).electronAPI.getInstalledApps();
+      console.log('INSTALLED APPS: ', installedApps);
+      this.installedApps = installedApps;
+      const appPort = await (window as any).electronAPI.getAppPort();
+      this.appWebsocket = await AppWebsocket.connect(new URL(`ws://127.0.0.1:${appPort}`));
+      this.view = MainWindowView.MainView;
+    });
+    (window as any).electronAPI.onProgressUpdate((e, payload) => {
+      console.log('RECEIVED PROGRESS UPDATE: ', e, payload);
+      this.launchProgressState = payload;
+    });
+  }
+
+  async openApp(appId: string) {
+    await (window as any).electronAPI.openApp(appId);
+  }
+
+  async uninstallApp(appId: string) {
+    console.log('Uninstalling app...');
+    await (window as any).electronAPI.uninstallApp(appId);
+    this.installedApps = await (window as any).electronAPI.getInstalledApps();
+  }
 
   checkInstallValidity() {
     if (!this.appIdInputField) {
@@ -121,103 +169,96 @@ export class AdminWindow extends LitElement {
     this.checkInstallValidity();
   }
 
-  async firstUpdated() {
-    const installedApps = await (window as any).electronAPI.getInstalledApps();
-    console.log('INSTALLED APPS: ', installedApps);
-    this.installedApps = installedApps;
-    const appPort = await (window as any).electronAPI.getAppPort();
-    this.appWebsocket = await AppWebsocket.connect(new URL(`ws://127.0.0.1:${appPort}`));
-  }
-
-  async openApp(appId: string) {
-    await (window as any).electronAPI.openApp(appId);
-  }
-
-  async uninstallApp(appId: string) {
-    console.log('Uninstalling app...');
-    await (window as any).electronAPI.uninstallApp(appId);
-    this.installedApps = await (window as any).electronAPI.getInstalledApps();
+  renderMainScreen() {
+    return html`
+    <div class="column center-content" style="flex: 1;">
+      <h1>Electron Launcher Prototype</h1>
+      <!-- <a href="https://duckduckgo.com" target="_blank">DuckDuckGo</a> -->
+      <div class="row">
+          <div class="column install-box">
+            <h2>Install New App</h2>
+            <div style="margin-bottom: 30px;">Install a Holochain app from the filesystem (.webhapp).</div>
+            <div style="margin-top: 10px; margin-bottom: 3px; font-size: 15px;">Select App from filesystem:</div>
+            <input type="file" accept=".webhapp" id="select-app-input" />
+            <div style="margin-top: 10px; margin-bottom: 3px; font-size: 15px;">Choose a name for the app:</div>
+            <input
+              type="text"
+              placeholder="Custom App Name"
+              id="app-id-input-field"
+              @input=${this.checkInstallValidity}
+            />
+            <div style="margin-top: 10px; margin-bottom: 3px; font-size: 15px;">Choose a network seed (Optional):</div>
+            <input
+              type="text"
+              placeholder="Network Seed (optional)"
+              id="network-seed-input-field"
+            />
+            <button
+              style="margin-top: 10px; height: 28px;"
+              id="install-app-button"
+              .disabled=${this.installDisabled}
+              @click=${this.installApp}
+            >
+              Install app
+            </button>
+          </div>
+          <div class="column install-box">
+            <h2>Install KanDo</h2>
+            <div style="margin-bottom: 30px;">KanDo is an app for collaborative KanBan boards and available by default as an example app.</div>
+            <div style="margin-top: 10px; margin-bottom: 3px; font-size: 15px;">Choose a name for the KanDo instance<br>(You can install more than one instance of KanDo):</div>
+            <input
+              type="text"
+              placeholder="Custom App Name"
+              id="kando-id-input-field"
+              @input=${this.checkKandoInstallValidity}
+            />
+            <div style="margin-top: 10px; margin-bottom: 3px; font-size: 15px;">Choose a network seed (Optional):</div>
+            <input
+              type="text"
+              placeholder="Network Seed (optional)"
+              id="kando-network-seed-input-field"
+            />
+            <button
+              style="margin-top: 10px; height: 28px;"
+              id="install-app-button"
+              .disabled=${this.kandoInstallDisabled}
+              @click=${this.installKando}
+            >
+              Install
+            </button>
+          </div>
+        </div>
+        <h2>Installed Apps</h2>
+        ${this.installedApps.length === 0 ? html`No apps installed.` : ``}
+        ${this.installedApps.map((app) => {
+          return html`
+            <div class="row app-card">
+              <div>${app.installed_app_id}</div>
+              <span style="flex: 1;"></span>
+              <button
+                style="margin-right: 10px;"
+                @click=${() => this.uninstallApp(app.installed_app_id)}
+              >
+                UNINSTALL
+              </button>
+              <button @click=${() => this.openApp(app.installed_app_id)}>OPEN</button>
+            </div>
+          `;
+        })}
+      </div>
+    </div>
+  `;
   }
 
   render() {
-    return html`
-      <div class="column center-content" style="flex: 1;">
-        <h1>Electron Launcher Prototype</h1>
-        <!-- <a href="https://duckduckgo.com" target="_blank">DuckDuckGo</a> -->
-        <div class="row">
-            <div class="column install-box">
-              <h2>Install New App</h2>
-              <div style="margin-bottom: 30px;">Install a Holochain app from the filesystem (.webhapp).</div>
-              <div style="margin-top: 10px; margin-bottom: 3px; font-size: 15px;">Select App from filesystem:</div>
-              <input type="file" accept=".webhapp" id="select-app-input" />
-              <div style="margin-top: 10px; margin-bottom: 3px; font-size: 15px;">Choose a name for the app:</div>
-              <input
-                type="text"
-                placeholder="Custom App Name"
-                id="app-id-input-field"
-                @input=${this.checkInstallValidity}
-              />
-              <div style="margin-top: 10px; margin-bottom: 3px; font-size: 15px;">Choose a network seed (Optional):</div>
-              <input
-                type="text"
-                placeholder="Network Seed (optional)"
-                id="network-seed-input-field"
-              />
-              <button
-                style="margin-top: 10px; height: 28px;"
-                id="install-app-button"
-                .disabled=${this.installDisabled}
-                @click=${this.installApp}
-              >
-                Install app
-              </button>
-            </div>
-            <div class="column install-box">
-              <h2>Install KanDo</h2>
-              <div style="margin-bottom: 30px;">KanDo is an app for collaborative KanBan boards and available by default as an example app.</div>
-              <div style="margin-top: 10px; margin-bottom: 3px; font-size: 15px;">Choose a name for the KanDo instance<br>(You can install more than one instance of KanDo):</div>
-              <input
-                type="text"
-                placeholder="Custom App Name"
-                id="kando-id-input-field"
-                @input=${this.checkKandoInstallValidity}
-              />
-              <div style="margin-top: 10px; margin-bottom: 3px; font-size: 15px;">Choose a network seed (Optional):</div>
-              <input
-                type="text"
-                placeholder="Network Seed (optional)"
-                id="kando-network-seed-input-field"
-              />
-              <button
-                style="margin-top: 10px; height: 28px;"
-                id="install-app-button"
-                .disabled=${this.kandoInstallDisabled}
-                @click=${this.installKando}
-              >
-                Install
-              </button>
-            </div>
-          </div>
-          <h2>Installed Apps</h2>
-          ${this.installedApps.length === 0 ? html`No apps installed.` : ``}
-          ${this.installedApps.map((app) => {
-            return html`
-              <div class="row app-card">
-                <div>${app.installed_app_id}</div>
-                <span style="flex: 1;"></span>
-                <button
-                  style="margin-right: 10px;"
-                  @click=${() => this.uninstallApp(app.installed_app_id)}
-                >
-                  UNINSTALL
-                </button>
-                <button @click=${() => this.openApp(app.installed_app_id)}>OPEN</button>
-              </div>
-            `;
-          })}
-        </div>
-      </div>
-    `;
+    switch (this.view) {
+      case MainWindowView.InitialLoading:
+        return html`loading...`;
+      case MainWindowView.PasswordRequired:
+        return html`<enter-password></enter-password>`;
+      case MainWindowView.MainView:
+        return this.renderMainScreen();
+    }
   }
 
   static get styles() {
