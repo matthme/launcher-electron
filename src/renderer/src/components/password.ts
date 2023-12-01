@@ -72,6 +72,7 @@ export class EnterPassword extends LitElement {
       if (e.toString().includes('Wrong password.')) {
         this.password = undefined;
         this.wrongPassword = true;
+        this.progressState = '';
         setTimeout(() => {
           this.wrongPassword = false;
         }, 3000);

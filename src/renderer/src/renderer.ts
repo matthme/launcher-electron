@@ -29,8 +29,17 @@
 import { LitElement, css, html } from 'lit';
 import { customElement, query, state } from 'lit/decorators.js';
 import { sharedStyles } from './sharedStyles';
-import { AppInfo, AppWebsocket } from '@holochain/client';
+import { AppWebsocket } from '@holochain/client';
 import './components/password.ts';
+import { ExtendedAppInfo } from '../../main/sharedTypes';
+import { ElectronAPI } from '../../main/sharedTypes';
+
+const DEFAULT_PARTITION = '0.2.x';
+declare global {
+  interface Window {
+    electronAPI: ElectronAPI;
+  }
+}
 
 enum MainWindowView {
   InitialLoading,
@@ -52,7 +61,7 @@ export class AdminWindow extends LitElement {
   password: string | undefined | null;
 
   @state()
-  installedApps: AppInfo[] = [];
+  installedApps: ExtendedAppInfo[] = [];
 
   @state()
   installDisabled = true;
@@ -77,35 +86,37 @@ export class AdminWindow extends LitElement {
 
   async firstUpdated() {
     try {
-      await (window as any).electronAPI.ipcHandlersReady();
+      await window.electronAPI.ipcHandlersReady();
       this.view = MainWindowView.PasswordRequired;
     } catch (e) {
-      (window as any).electronAPI.onIPCHandlersReady(() => {
+      window.electronAPI.onIPCHandlersReady(() => {
         this.view = MainWindowView.PasswordRequired;
       });
     }
-    (window as any).electronAPI.onHolochainReady(async () => {
-      const installedApps = await (window as any).electronAPI.getInstalledApps();
+    window.electronAPI.onHolochainReady(async (_, runningHolochains) => {
+      const installedApps = await window.electronAPI.getInstalledApps();
       console.log('INSTALLED APPS: ', installedApps);
       this.installedApps = installedApps;
-      const appPort = await (window as any).electronAPI.getAppPort();
+      const appPort = runningHolochains[0].appPort;
       this.appWebsocket = await AppWebsocket.connect(new URL(`ws://127.0.0.1:${appPort}`));
       this.view = MainWindowView.MainView;
     });
-    (window as any).electronAPI.onProgressUpdate((e, payload) => {
+    window.electronAPI.onProgressUpdate((e, payload) => {
       console.log('RECEIVED PROGRESS UPDATE: ', e, payload);
       this.launchProgressState = payload;
     });
   }
 
-  async openApp(appId: string) {
-    await (window as any).electronAPI.openApp(appId);
+  async openApp(extendedAppInfo: ExtendedAppInfo) {
+    await window.electronAPI.openApp(extendedAppInfo);
   }
 
-  async uninstallApp(appId: string) {
+  async uninstallApp(app: ExtendedAppInfo) {
     console.log('Uninstalling app...');
-    await (window as any).electronAPI.uninstallApp(appId);
-    this.installedApps = await (window as any).electronAPI.getInstalledApps();
+    const appId = app.appInfo.installed_app_id;
+    const partition = app.partition;
+    await window.electronAPI.uninstallApp(appId, partition);
+    this.installedApps = await window.electronAPI.getInstalledApps();
   }
 
   checkInstallValidity() {
@@ -117,7 +128,9 @@ export class AdminWindow extends LitElement {
     this.installDisabled =
       !this.appIdInputField.value ||
       this.appIdInputField.value === '' ||
-      this.installedApps.map((app) => app.installed_app_id).includes(this.appIdInputField.value);
+      this.installedApps
+        .map((app) => app.appInfo.installed_app_id)
+        .includes(this.appIdInputField.value);
     // return true;
     // return !!this.appIdInputField.value;
   }
@@ -131,7 +144,9 @@ export class AdminWindow extends LitElement {
     this.kandoInstallDisabled =
       !this.kandoIdInputField.value ||
       this.kandoIdInputField.value === '' ||
-      this.installedApps.map((app) => app.installed_app_id).includes(this.kandoIdInputField.value);
+      this.installedApps
+        .map((app) => app.appInfo.installed_app_id)
+        .includes(this.kandoIdInputField.value);
     // return true;
     // return !!this.appIdInputField.value;
   }
@@ -141,12 +156,13 @@ export class AdminWindow extends LitElement {
     const file = this.selectAppInput.files![0];
     console.log('FILE PATH: ', (file as any).path);
     if (file) {
-      await (window as any).electronAPI.installApp(
+      await window.electronAPI.installApp(
         (file as any).path,
         this.appIdInputField.value,
+        DEFAULT_PARTITION,
         this.networkSeedInputField.value,
       );
-      this.installedApps = await (window as any).electronAPI.getInstalledApps();
+      this.installedApps = await window.electronAPI.getInstalledApps();
       this.appIdInputField.value = '';
       this.networkSeedInputField.value = '';
       this.checkInstallValidity();
@@ -158,12 +174,13 @@ export class AdminWindow extends LitElement {
   async installKando() {
     console.log('Installing KanDo...');
 
-    await (window as any).electronAPI.installApp(
+    await window.electronAPI.installApp(
       '#####REQUESTED_KANDO_INSTALLATION#####',
       this.kandoIdInputField.value,
+      DEFAULT_PARTITION,
       this.networkSeedInputField.value,
     );
-    this.installedApps = await (window as any).electronAPI.getInstalledApps();
+    this.installedApps = await window.electronAPI.getInstalledApps();
     this.kandoIdInputField.value = '';
     this.kandoNetworkSeedInputField.value = '';
     this.checkInstallValidity();
@@ -233,15 +250,12 @@ export class AdminWindow extends LitElement {
         ${this.installedApps.map((app) => {
           return html`
             <div class="row app-card">
-              <div>${app.installed_app_id}</div>
+              <div>${app.appInfo.installed_app_id}</div>
               <span style="flex: 1;"></span>
-              <button
-                style="margin-right: 10px;"
-                @click=${() => this.uninstallApp(app.installed_app_id)}
-              >
+              <button style="margin-right: 10px;" @click=${() => this.uninstallApp(app)}>
                 UNINSTALL
               </button>
-              <button @click=${() => this.openApp(app.installed_app_id)}>OPEN</button>
+              <button @click=${() => this.openApp(app)}>OPEN</button>
             </div>
           `;
         })}
@@ -299,14 +313,14 @@ export class AdminWindow extends LitElement {
 // installAppButton.addEventListener("click", async () => {
 //   const file = selectAppInput.files[0];
 //   if (file){
-//     await (window as any).electronAPI.installApp(file.path)
+//     await window.electronAPI.installApp(file.path)
 //   } else {
 //     alert("No file selected.");
 //   }
 // });
 
 // const uninstallAppButton = document.getElementById("uninstall-app-button");
-// uninstallAppButton.addEventListener("click", async () => await (window as any).electronAPI.uninstallApp());
+// uninstallAppButton.addEventListener("click", async () => await window.electronAPI.uninstallApp());
 
 // const openAppButton = document.getElementById("open-app-button");
-// openAppButton.addEventListener("click", async () => await (window as any).electronAPI.openApp());
+// openAppButton.addEventListener("click", async () => await window.electronAPI.openApp());

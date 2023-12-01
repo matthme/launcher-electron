@@ -1,22 +1,11 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import {
-  app,
-  BrowserWindow,
-  ipcMain,
-  IpcMainInvokeEvent,
-  net,
-  session,
-  Tray,
-  Menu,
-  nativeImage,
-} from 'electron';
+import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent, Tray, Menu, nativeImage } from 'electron';
 import path from 'path';
 import * as childProcess from 'child_process';
+import getPort from 'get-port';
 import { ArgumentParser } from 'argparse';
-import { is } from '@electron-toolkit/utils';
 
 import { LauncherFileSystem } from './filesystem';
-import { holochianBinaries, lairBinary } from './binaries';
 import { ZomeCallSigner, ZomeCallUnsignedNapi } from 'hc-launcher-rust-utils';
 // import { AdminWebsocket } from '@holochain/client';
 import { initializeLairKeystore, launchLairKeystore } from './lairKeystore';
@@ -24,8 +13,9 @@ import { LauncherEmitter } from './launcherEmitter';
 import { HolochainManager } from './holochainManager';
 import { setupLogs } from './logs';
 import { DEFAULT_APPS_DIRECTORY, ICONS_DIRECTORY } from './paths';
-import { setLinkOpenHandlers } from './utils';
 import { createHappWindow, createOrShowMainWindow } from './windows';
+import { LAIR_BINARY } from './binaries';
+import { ExtendedAppInfo, RunningHolochain } from './sharedTypes';
 
 const rustUtils = require('hc-launcher-rust-utils');
 // import * as rustUtils from 'hc-launcher-rust-utils';
@@ -75,7 +65,7 @@ let ZOME_CALL_SIGNER: ZomeCallSigner | undefined;
 // let ADMIN_WEBSOCKET: AdminWebsocket | undefined;
 // let ADMIN_PORT: number | undefined;
 let APP_PORT: number | undefined;
-let HOLOCHAIN_MANAGER: HolochainManager | undefined;
+let HOLOCHAIN_MANAGERS: Record<string, HolochainManager> = {}; // holochain managers sorted by partition
 let LAIR_HANDLE: childProcess.ChildProcessWithoutNullStreams | undefined;
 let MAIN_WINDOW: BrowserWindow | undefined | null;
 
@@ -121,12 +111,15 @@ app.whenReady().then(async () => {
   tray.setContextMenu(contextMenu);
 
   ipcMain.handle('sign-zome-call', handleSignZomeCall);
-  ipcMain.handle('open-app', async (_e, appId: string) =>
-    createHappWindow(appId, LAUNCHER_FILE_SYSTEM, APP_PORT),
-  );
+  ipcMain.handle('open-app', async (_e, extendedAppInfo: ExtendedAppInfo) => {
+    const holochainManager = HOLOCHAIN_MANAGERS[extendedAppInfo.partition];
+    if (!holochainManager)
+      throw new Error('Responsible Holochain Manager seems not to be running.');
+    createHappWindow(extendedAppInfo, LAUNCHER_FILE_SYSTEM, holochainManager.appPort);
+  });
   ipcMain.handle(
     'install-app',
-    async (_e, filePath: string, appId: string, networkSeed: string) => {
+    async (_e, filePath: string, appId: string, partition: string, networkSeed: string) => {
       if (filePath === '#####REQUESTED_KANDO_INSTALLATION#####') {
         console.log('Got request to install KanDo.');
         filePath = path.join(DEFAULT_APPS_DIRECTORY, 'kando.webhapp');
@@ -134,17 +127,36 @@ app.whenReady().then(async () => {
       if (!appId || appId === '') {
         throw new Error('No app id provided.');
       }
-      await HOLOCHAIN_MANAGER!.installApp(filePath, appId, networkSeed);
+      const holochainManager = HOLOCHAIN_MANAGERS[partition];
+      if (!holochainManager) {
+        throw new Error(
+          `No running Holochain Manager found for the specified partition: ${partition}`,
+        );
+      }
+      await holochainManager.installWebHapp(filePath, appId, networkSeed);
     },
   );
-  ipcMain.handle('uninstall-app', async (_e, appId: string) => {
-    await HOLOCHAIN_MANAGER!.uninstallApp(appId);
+  ipcMain.handle('uninstall-app', async (_e, appId: string, partition: string) => {
+    const holochainManager = HOLOCHAIN_MANAGERS[partition];
+    if (!holochainManager) {
+      throw new Error(
+        `No running Holochain Manager found for the specified partition: ${partition}`,
+      );
+    }
+    await holochainManager.uninstallApp(appId);
   });
   ipcMain.handle('get-installed-apps', async () => {
-    return HOLOCHAIN_MANAGER!.installedApps;
-  });
-  ipcMain.handle('get-app-port', async () => {
-    return HOLOCHAIN_MANAGER!.appPort;
+    return Object.values(HOLOCHAIN_MANAGERS)
+      .map((manager) =>
+        manager.installedApps.map((app) => {
+          return {
+            appInfo: app,
+            version: manager.version,
+            partition: manager.partition,
+          };
+        }),
+      )
+      .flat();
   });
   ipcMain.handle('lair-setup-required', async () => {
     return !LAUNCHER_FILE_SYSTEM.keystoreInitialized();
@@ -181,9 +193,11 @@ app.on('quit', () => {
   if (LAIR_HANDLE) {
     LAIR_HANDLE.kill();
   }
-  if (HOLOCHAIN_MANAGER) {
-    HOLOCHAIN_MANAGER.processHandle.kill();
-  }
+  Object.values(HOLOCHAIN_MANAGERS).forEach((manager) => {
+    if (manager.processHandle) {
+      manager.processHandle.kill();
+    }
+  });
 });
 
 // In this file you can include the rest of your app's specific main process
@@ -197,7 +211,7 @@ function handleLaunch() {
     // await delay(5000);
 
     // Initialize lair if necessary
-    const lairHandleTemp = childProcess.spawnSync(lairBinary, ['--version']);
+    const lairHandleTemp = childProcess.spawnSync(LAIR_BINARY, ['--version']);
     if (!lairHandleTemp.stdout) {
       console.error(`Failed to run lair-keystore binary:\n${lairHandleTemp}`);
     }
@@ -212,17 +226,18 @@ function handleLaunch() {
       //   console.log("[LAIR INIT]: ", line);
       // })
       await initializeLairKeystore(
-        lairBinary,
+        LAIR_BINARY,
         LAUNCHER_FILE_SYSTEM.keystoreDir,
         LAUNCHER_EMITTER,
         password,
       );
     }
+
     MAIN_WINDOW.webContents.send('loading-progress-update', 'Starting lair keystore...');
 
     // launch lair keystore
     const [lairHandle, lairUrl] = await launchLairKeystore(
-      lairBinary,
+      LAIR_BINARY,
       LAUNCHER_FILE_SYSTEM.keystoreDir,
       LAUNCHER_EMITTER,
       password,
@@ -233,26 +248,34 @@ function handleLaunch() {
 
     MAIN_WINDOW.webContents.send('loading-progress-update', 'Starting Holochain...');
 
+    const adminPort = await getPort();
+
     // launch holochain
     const holochainManager = await HolochainManager.launch(
       LAUNCHER_EMITTER,
       LAUNCHER_FILE_SYSTEM,
-      holochianBinaries['holochain-0.2.3'],
       password,
-      '0.2.3',
-      LAUNCHER_FILE_SYSTEM.holochainDir,
-      LAUNCHER_FILE_SYSTEM.conductorConfigPath,
+      {
+        type: 'built-in',
+        version: '0.2.3',
+      },
+      adminPort,
       lairUrl,
-      'https://bootstrap.holo.host',
-      'wss://signal.holo.host',
+      undefined,
+      undefined,
+      undefined,
     );
     // ADMIN_PORT = holochainManager.adminPort;
     // ADMIN_WEBSOCKET = holochainManager.adminWebsocket;
-    APP_PORT = holochainManager.appPort;
-    HOLOCHAIN_MANAGER = holochainManager;
+    HOLOCHAIN_MANAGERS['0.2.x'] = holochainManager;
 
-    MAIN_WINDOW.webContents.send('holochain-ready');
-
+    emitToWindow<RunningHolochain[]>(MAIN_WINDOW, 'holochain-ready', [
+      {
+        version: holochainManager.version,
+        partition: holochainManager.partition,
+        appPort: holochainManager.appPort,
+      },
+    ]);
     // Install default apps if necessary:
     // if (
     //   !HOLOCHAIN_MANAGER.installedApps.map((appInfo) => appInfo.installed_app_id).includes('KanDo')
@@ -266,4 +289,8 @@ function handleLaunch() {
     //   console.log('KanDo isntalled.');
     // }
   };
+}
+
+function emitToWindow<T>(targetWindow: BrowserWindow, channel: string, payload: T): void {
+  targetWindow.webContents.send(channel, payload);
 }
