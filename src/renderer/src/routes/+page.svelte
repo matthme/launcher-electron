@@ -1,9 +1,12 @@
 <script lang="ts">
+	import { AppData } from '$api';
+
 	// import { get } from 'svelte/store';
 	import { languageStoreInstance } from '$services';
 	import { languageEN } from '$utils';
-	import { client } from '$lib';
 	// import Tooltip from '$components/Tooltip.svelte';
+
+	const { stateInfoResult } = AppData();
 
 	languageStoreInstance.set(languageEN);
 </script>
@@ -42,5 +45,5 @@
 			</button>
 		</div>
 	{/if} -->
-	<span>{bilbo}</span>
+	<span>{$stateInfoResult.data}</span>
 </div>

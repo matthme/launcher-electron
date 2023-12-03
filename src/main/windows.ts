@@ -18,6 +18,7 @@ export const createOrShowMainWindow = (mainWindow: BrowserWindow | undefined | n
     show: false,
     webPreferences: {
       preload: path.resolve(__dirname, '../preload/admin.js'),
+      // nodeIntegration: true,
     },
   });
 

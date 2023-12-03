@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
 import type { ZomeCallUnsignedNapi } from 'hc-launcher-rust-utils';
-import { ELECTRON_API, IPC_EVENTS } from '../types/electron-actions';
+import { ELECTRON_API, IPC_EVENTS, type ProgressState } from '../types';
 
 const contextBridgeApi = {
   getInstalledApps: () => ipcRenderer.invoke(IPC_EVENTS.GET_INSTALLED_APPS),
@@ -13,7 +13,7 @@ const contextBridgeApi = {
   openApp: (appId: string) => ipcRenderer.invoke(IPC_EVENTS.OPEN_APP, appId),
   onHolochainReady: (callback: (event: IpcRendererEvent, ...args: any[]) => void) =>
     ipcRenderer.on(IPC_EVENTS.HOLOCHAIN_READY, callback),
-  onProgressUpdate: (callback: (event: IpcRendererEvent, ...args: any[]) => void) =>
+  onProgressUpdate: (callback: (event: IpcRendererEvent, progress: ProgressState) => void) =>
     ipcRenderer.on(IPC_EVENTS.LOADING_PROGRESS_UPDATE, callback),
   onIPCHandlersReady: (callback: (event: IpcRendererEvent, ...args: any[]) => void) =>
     ipcRenderer.on(IPC_EVENTS.IPC_HANDLERS_READY, callback),

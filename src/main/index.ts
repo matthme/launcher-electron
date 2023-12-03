@@ -14,7 +14,7 @@ import { HolochainManager } from './holochainManager';
 import { setupLogs } from './logs';
 import { DEFAULT_APPS_DIRECTORY, ICONS_DIRECTORY } from './paths';
 import { createHappWindow, createOrShowMainWindow } from './windows';
-import { IPC_EVENTS } from '../types';
+import { IPC_EVENTS, STARTING_HOLOCHAIN, STARTING_LAIR_KEYSTORE } from '../types';
 
 const rustUtils = require('hc-launcher-rust-utils');
 // import * as rustUtils from 'hc-launcher-rust-utils';
@@ -192,7 +192,7 @@ function handleLaunch() {
     }
     console.log(`Got lair version ${lairHandleTemp.stdout.toString()}`);
     if (!LAUNCHER_FILE_SYSTEM.keystoreInitialized()) {
-      MAIN_WINDOW.webContents.send('loading-progress-update', 'Starting lair keystore...');
+      MAIN_WINDOW.webContents.send(IPC_EVENTS.LOADING_PROGRESS_UPDATE, STARTING_LAIR_KEYSTORE);
       // TODO: https://github.com/holochain/launcher/issues/144
       // const lairHandle = childProcess.spawn(lairBinary, ["init", "-p"], { cwd: launcherFileSystem.keystoreDir });
       // lairHandle.stdin.write(password);
@@ -207,7 +207,7 @@ function handleLaunch() {
         password,
       );
     }
-    MAIN_WINDOW.webContents.send('loading-progress-update', 'Starting lair keystore...');
+    MAIN_WINDOW.webContents.send(IPC_EVENTS.LOADING_PROGRESS_UPDATE, STARTING_LAIR_KEYSTORE);
 
     // launch lair keystore
     const [lairHandle, lairUrl] = await launchLairKeystore(
@@ -220,7 +220,7 @@ function handleLaunch() {
     // create zome call signer
     ZOME_CALL_SIGNER = await rustUtils.ZomeCallSigner.connect(lairUrl, password);
 
-    MAIN_WINDOW.webContents.send('loading-progress-update', 'Starting Holochain...');
+    MAIN_WINDOW.webContents.send(IPC_EVENTS.LOADING_PROGRESS_UPDATE, STARTING_HOLOCHAIN);
 
     // launch holochain
     const holochainManager = await HolochainManager.launch(
