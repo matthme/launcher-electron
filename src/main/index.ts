@@ -1,5 +1,14 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent, Tray, Menu, nativeImage } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  IpcMainInvokeEvent,
+  Tray,
+  Menu,
+  nativeImage,
+  protocol,
+} from 'electron';
 import path from 'path';
 import * as childProcess from 'child_process';
 import getPort from 'get-port';
@@ -38,6 +47,13 @@ parser.add_argument('-p', '--profile', {
   type: 'string',
 });
 
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'webhapp',
+    privileges: { standard: true },
+  },
+]);
+
 const allowedProfilePattern = /^[0-9a-zA-Z-]+$/;
 const args = parser.parse_args();
 if (args.profile && !allowedProfilePattern.test(args.profile)) {
@@ -69,7 +85,7 @@ let HOLOCHAIN_MANAGERS: Record<string, HolochainManager> = {}; // holochain mana
 let LAIR_HANDLE: childProcess.ChildProcessWithoutNullStreams | undefined;
 let MAIN_WINDOW: BrowserWindow | undefined | null;
 
-const handleSignZomeCall = (_e: IpcMainInvokeEvent, zomeCall: ZomeCallUnsignedNapi) => {
+const handleSignZomeCall = (e: IpcMainInvokeEvent, zomeCall: ZomeCallUnsignedNapi) => {
   if (!ZOME_CALL_SIGNER) throw Error('Lair signer is not ready');
   return ZOME_CALL_SIGNER.signZomeCall(zomeCall);
 };

@@ -63,22 +63,25 @@ export const createHappWindow = (
   const holochainPartition = extendedAppInfo.partition;
   const partition = `persist:${holochainPartition}#${appId}`;
   const ses = session.fromPartition(partition);
-  ses.protocol.handle('file', async (request) => {
+  ses.protocol.handle('webhapp', async (request) => {
     // console.log("### Got file request: ", request);
-    const filePath = request.url.slice('file://'.length);
+    const uriWithoutProtocol = request.url.slice('webhapp://'.length);
+    const filePathComponents = uriWithoutProtocol.split('/').slice(1);
+    const filePath = path.join(...filePathComponents);
+
     console.log('filePath: ', filePath);
+
+    const resource = net.fetch(
+      url
+        .pathToFileURL(path.join(launcherFileSystem.happUiDir(appId, holochainPartition), filePath))
+        .toString(),
+    );
     if (!filePath.endsWith('index.html')) {
-      return net.fetch(
-        url
-          .pathToFileURL(
-            path.join(launcherFileSystem.happUiDir(appId, holochainPartition), filePath),
-          )
-          .toString(),
-      );
+      return resource;
     } else {
-      const indexHtmlResponse = await net.fetch(request.url);
-      const content = await indexHtmlResponse.text();
-      let modifiedContent = content.replace(
+      const indexHtmlResponse = await resource;
+      const indexHtml = await indexHtmlResponse.text();
+      let modifiedContent = indexHtml.replace(
         '<head>',
         `<head><script type="module">window.__HC_LAUNCHER_ENV__ = { APP_INTERFACE_PORT: ${appPort}, INSTALLED_APP_ID: "${appId}", FRAMEWORK: "electron" };</script>`,
       );
@@ -111,13 +114,11 @@ export const createHappWindow = (
   happWindow.on('closed', () => {
     console.log(`Happ window with frame id ${happWindow.id} closed.`);
     // remove protocol handler
-    ses.protocol.unhandle('file');
+    ses.protocol.unhandle('webhapp');
     // happWindow = null;
   });
   console.log('Loading happ window file');
-  happWindow.loadFile(
-    path.join(launcherFileSystem.happUiDir(appId, holochainPartition), 'index.html'),
-  );
+  happWindow.loadURL(`webhapp://webhappwindow/index.html`);
 };
 
 // // Currently unused
