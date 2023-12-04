@@ -6,7 +6,11 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin({ exclude: ['@holochain/client'] })],
   },
   preload: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [
+      externalizeDepsPlugin({
+        exclude: ['electron-trpc'],
+      }),
+    ],
     build: {
       rollupOptions: {
         input: {
