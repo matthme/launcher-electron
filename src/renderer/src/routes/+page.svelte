@@ -56,5 +56,5 @@
 			</button>
 		</div>
 	{/if} -->
-	<span>{$foo.error}</span>
+	<span>{$foo.data?.text}</span>
 </div>
