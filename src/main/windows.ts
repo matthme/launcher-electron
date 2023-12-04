@@ -1,9 +1,11 @@
 import { is } from '@electron-toolkit/utils';
 import { BrowserWindow, net, session } from 'electron';
+import { createIPCHandler } from 'electron-trpc/main';
 import path from 'path';
 import url from 'url';
 import { setLinkOpenHandlers } from './utils';
 import { LauncherFileSystem } from './filesystem';
+import { router } from './api';
 
 export const createOrShowMainWindow = (mainWindow: BrowserWindow | undefined | null) => {
   if (mainWindow) {
@@ -18,9 +20,10 @@ export const createOrShowMainWindow = (mainWindow: BrowserWindow | undefined | n
     show: false,
     webPreferences: {
       preload: path.resolve(__dirname, '../preload/admin.js'),
-      // nodeIntegration: true,
     },
   });
+
+  createIPCHandler({ router, windows: [mainWindow] });
 
   console.log('Creating main window');
 

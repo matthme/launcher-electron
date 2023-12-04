@@ -319,6 +319,16 @@
   dependencies:
     "@tanstack/query-core" "5.8.7"
 
+"@trpc/client@^10.44.1":
+  version "10.44.1"
+  resolved "https://registry.yarnpkg.com/@trpc/client/-/client-10.44.1.tgz#5666f5b81566d2e44802706581d9e6f2b591502e"
+  integrity sha512-vTWsykNcgz1LnwePVl2fKZnhvzP9N3GaaLYPkfGINo314ZOS0OBqe9x0ytB2LLUnRVTAAZ2WoONzARd8nHiqrA==
+
+"@trpc/server@^10.44.1":
+  version "10.44.1"
+  resolved "https://registry.yarnpkg.com/@trpc/server/-/server-10.44.1.tgz#0d089a3cd5d1268aa8f6845a183329fcac7f2fac"
+  integrity sha512-mF7B+K6LjuboX8I1RZgKE5GA/fJhsJ8tKGK2UBt3Bwik7hepEPb4NJgNr7vO6BK5IYwPdBLRLTctRw6XZx0sRg==
+
 "@types/cookie@^0.5.1":
   version "0.5.4"
   resolved "https://registry.yarnpkg.com/@types/cookie/-/cookie-0.5.4.tgz#7e70a20cd695bc48d46b08c2505874cd68b760e0"
@@ -1577,6 +1587,11 @@ prettier@^2.8.0:
   resolved "https://registry.yarnpkg.com/prettier/-/prettier-2.8.8.tgz#e8c5d7e98a4305ffe3de2e1fc4aca1a71c28b1da"
   integrity sha512-tdN8qQGvNjw4CHbY+XXk0JgCXn9QiF21a55rBe5LJAU+kDyC4WQn4+awm2Xfk2lQMk5fKup9XgzTZtGkjBdP9Q==
 
+proxy-deep@^3.1.1:
+  version "3.1.1"
+  resolved "https://registry.yarnpkg.com/proxy-deep/-/proxy-deep-3.1.1.tgz#481f8e35f528ec734c41eae3b391e317599a5282"
+  integrity sha512-kppbvLUNJ4IOMZds9/4gz/rtT5OFiesy3XosLsgMKlF3vb6GA5Y3ptyDlzKLcOcUBW+zaY+RiMINTsgE+O6e+Q==
+
 punycode@^2.1.0:
   version "2.3.1"
   resolved "https://registry.yarnpkg.com/punycode/-/punycode-2.3.1.tgz#027422e2faec0b25e1549c3e1bd8309b9133b6e5"
@@ -1898,6 +1913,20 @@ totalist@^3.0.0:
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/totalist/-/totalist-3.0.1.tgz#ba3a3d600c915b1a97872348f79c127475f6acf8"
   integrity sha512-sf4i37nQ2LBx4m3wB74y+ubopq6W/dIzXg0FDGjsYnZHVa1Da8FH853wlL2gtUhg+xJXjfk3kUZS3BRoQeoQBQ==
+
+trpc-svelte-query-adapter@^2.2.0:
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/trpc-svelte-query-adapter/-/trpc-svelte-query-adapter-2.2.0.tgz#e05842ba2cd2a8c4157d724e50e426d5f58f8f16"
+  integrity sha512-eG7EG1U5zfcKxErWSZwWFNCsYcAQA2ZBravdBhMZTLN0KiN+lySB0xKmOxWzkpTrraZOIkJQV8IG0W8wBgSJFw==
+  dependencies:
+    proxy-deep "^3.1.1"
+
+trpc-svelte-query@^2.0.5:
+  version "2.0.5"
+  resolved "https://registry.yarnpkg.com/trpc-svelte-query/-/trpc-svelte-query-2.0.5.tgz#00c267b06aea5c63606715ed979e9d61d07f5398"
+  integrity sha512-Cli9UaKjeIZMEqUY4xarEiALr0CQD9RzMwuTxyzlkEcU2bkLgphT0CT3ngjRUIlgk3mpouKt6PhYP9A29URALw==
+  dependencies:
+    esm-env "^1.0.0"
 
 ts-api-utils@^1.0.1:
   version "1.0.3"

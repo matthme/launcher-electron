@@ -37,5 +37,10 @@
 		"vite-plugin-tailwind-purgecss": "0.1.4"
 	},
 	"type": "module",
-	"dependencies": {}
+	"dependencies": {
+		"@trpc/client": "^10.44.1",
+		"@trpc/server": "^10.44.1",
+		"trpc-svelte-query": "^2.0.5",
+		"trpc-svelte-query-adapter": "^2.2.0"
+	}
 }

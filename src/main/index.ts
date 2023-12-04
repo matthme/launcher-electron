@@ -14,7 +14,6 @@ import { HolochainManager } from './holochainManager';
 import { setupLogs } from './logs';
 import { DEFAULT_APPS_DIRECTORY, ICONS_DIRECTORY } from './paths';
 import { createHappWindow, createOrShowMainWindow } from './windows';
-import { IPC_EVENTS, STARTING_HOLOCHAIN, STARTING_LAIR_KEYSTORE } from '../types';
 
 const rustUtils = require('hc-launcher-rust-utils');
 // import * as rustUtils from 'hc-launcher-rust-utils';
@@ -109,12 +108,12 @@ app.whenReady().then(async () => {
   tray.setToolTip('Holochain Launcher');
   tray.setContextMenu(contextMenu);
 
-  ipcMain.handle(IPC_EVENTS.SIGN_ZOME_CALL, handleSignZomeCall);
-  ipcMain.handle(IPC_EVENTS.OPEN_APP, async (_e, appId: string) =>
+  ipcMain.handle('sign-zome-call', handleSignZomeCall);
+  ipcMain.handle('open-app', async (_e, appId: string) =>
     createHappWindow(appId, LAUNCHER_FILE_SYSTEM, APP_PORT),
   );
   ipcMain.handle(
-    IPC_EVENTS.INSTALL_APP,
+    'install-app',
     async (_e, filePath: string, appId: string, networkSeed: string) => {
       if (filePath === '#####REQUESTED_KANDO_INSTALLATION#####') {
         console.log('Got request to install KanDo.');
@@ -123,25 +122,26 @@ app.whenReady().then(async () => {
       if (!appId || appId === '') {
         throw new Error('No app id provided.');
       }
+
       await HOLOCHAIN_MANAGER!.installApp(filePath, appId, networkSeed);
     },
   );
-  ipcMain.handle(IPC_EVENTS.UNINSTALL_APP, async (_e, appId: string) => {
+  ipcMain.handle('uninstall-app', async (_e, appId: string) => {
     await HOLOCHAIN_MANAGER!.uninstallApp(appId);
   });
-  ipcMain.handle(IPC_EVENTS.GET_INSTALLED_APPS, async () => {
+  ipcMain.handle('get-installed-apps', async () => {
     return HOLOCHAIN_MANAGER!.installedApps;
   });
-  ipcMain.handle(IPC_EVENTS.GET_APP_PORT, async () => {
+  ipcMain.handle('get-app-port', async () => {
     return HOLOCHAIN_MANAGER!.appPort;
   });
-  ipcMain.handle(IPC_EVENTS.LAIR_SETUP_REQUIRED, async () => {
+  ipcMain.handle('lair-setup-required', async () => {
     return !LAUNCHER_FILE_SYSTEM.keystoreInitialized();
   });
-  ipcMain.handle(IPC_EVENTS.LAUNCH, handleLaunch());
-  ipcMain.handle(IPC_EVENTS.IPC_HANDLERS_READY, () => true);
+  ipcMain.handle('launch', handleLaunch());
+  ipcMain.handle('ipc-handlers-ready', () => true);
 
-  MAIN_WINDOW!.webContents.send(IPC_EVENTS.IPC_HANDLERS_READY);
+  MAIN_WINDOW!.webContents.send('ipc-handlers-ready');
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -192,7 +192,7 @@ function handleLaunch() {
     }
     console.log(`Got lair version ${lairHandleTemp.stdout.toString()}`);
     if (!LAUNCHER_FILE_SYSTEM.keystoreInitialized()) {
-      MAIN_WINDOW.webContents.send(IPC_EVENTS.LOADING_PROGRESS_UPDATE, STARTING_LAIR_KEYSTORE);
+      MAIN_WINDOW.webContents.send('loading-progress-update', 'Starting lair keystore...');
       // TODO: https://github.com/holochain/launcher/issues/144
       // const lairHandle = childProcess.spawn(lairBinary, ["init", "-p"], { cwd: launcherFileSystem.keystoreDir });
       // lairHandle.stdin.write(password);
@@ -207,7 +207,7 @@ function handleLaunch() {
         password,
       );
     }
-    MAIN_WINDOW.webContents.send(IPC_EVENTS.LOADING_PROGRESS_UPDATE, STARTING_LAIR_KEYSTORE);
+    MAIN_WINDOW.webContents.send('loading-progress-update', 'Starting lair keystore...');
 
     // launch lair keystore
     const [lairHandle, lairUrl] = await launchLairKeystore(
@@ -220,7 +220,7 @@ function handleLaunch() {
     // create zome call signer
     ZOME_CALL_SIGNER = await rustUtils.ZomeCallSigner.connect(lairUrl, password);
 
-    MAIN_WINDOW.webContents.send(IPC_EVENTS.LOADING_PROGRESS_UPDATE, STARTING_HOLOCHAIN);
+    MAIN_WINDOW.webContents.send('loading-progress-update', 'Starting Holochain...');
 
     // launch holochain
     const holochainManager = await HolochainManager.launch(

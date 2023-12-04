@@ -25,10 +25,14 @@
     "@electron-toolkit/preload": "^2.0.0",
     "@electron-toolkit/utils": "^2.0.0",
     "@holochain/client": "^0.16.3",
+    "@trpc/client": "^10.44.1",
+    "@trpc/server": "^10.44.1",
     "bufferutil": "4.0.8",
+    "electron-trpc": "^0.5.2",
     "hc-launcher-rust-utils": "file:./rust-utils/dist",
     "split": "1.0.1",
-    "winston": "3.11.0"
+    "winston": "3.11.0",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^1.0.1",

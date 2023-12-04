@@ -1,12 +1,23 @@
 <script lang="ts">
-	import { AppData } from '$api';
+	import { trpc } from '$lib/clients';
 
 	// import { get } from 'svelte/store';
 	import { languageStoreInstance } from '$services';
 	import { languageEN } from '$utils';
 	// import Tooltip from '$components/Tooltip.svelte';
 
-	const { stateInfoResult } = AppData();
+	const client = trpc();
+
+	const foo = client.greeting.createQuery({ data: 'test' });
+
+	client.greetingSubscription.createSubscription(undefined, {
+		onData: (data) => {
+			console.log(data);
+		},
+		onError: (error) => {
+			console.log(error);
+		}
+	});
 
 	languageStoreInstance.set(languageEN);
 </script>
@@ -45,5 +56,5 @@
 			</button>
 		</div>
 	{/if} -->
-	<span>{$stateInfoResult.data}</span>
+	<span>{$foo.error}</span>
 </div>
