@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { trpc } from '$lib/clients';
+	import { trpc } from '$lib';
 
 	// import { get } from 'svelte/store';
 	import { languageStoreInstance } from '$services';
