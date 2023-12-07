@@ -1,5 +1,5 @@
 import { ipcLink } from 'electron-trpc/renderer';
-import type { AppRouter } from '../../../main/api';
+import type { AppRouter } from '../../../main';
 import { createTRPCProxyClient } from '@trpc/client';
 import type { QueryClient } from '@tanstack/svelte-query';
 

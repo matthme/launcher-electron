@@ -5,9 +5,12 @@ import path from 'path';
 import url from 'url';
 import { setLinkOpenHandlers } from './utils';
 import { LauncherFileSystem } from './filesystem';
-import { router } from './api';
+import type { AppRouter } from '.';
 
-export const createOrShowMainWindow = (mainWindow: BrowserWindow | undefined | null) => {
+export const createOrShowMainWindow = (
+  mainWindow: BrowserWindow | undefined | null,
+  router: AppRouter,
+) => {
   if (mainWindow) {
     mainWindow.show();
     return;

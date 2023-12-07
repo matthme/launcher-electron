@@ -10,7 +10,7 @@
 
 	const foo = client.greeting.createQuery({ data: 'test' });
 
-	client.greetingSubscription.createSubscription(undefined, {
+	client.onSetupProgressUpdate.createSubscription(undefined, {
 		onData: (data) => {
 			console.log(data);
 		},

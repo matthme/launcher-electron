@@ -3,6 +3,7 @@ import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent, Tray, Menu, nativeImag
 import path from 'path';
 import * as childProcess from 'child_process';
 import { ArgumentParser } from 'argparse';
+import { LoadingProgressUpdate, loadingProgressUpdate } from '../types';
 
 import { LauncherFileSystem } from './filesystem';
 import { holochianBinaries, lairBinary } from './binaries';
@@ -14,6 +15,15 @@ import { HolochainManager } from './holochainManager';
 import { setupLogs } from './logs';
 import { DEFAULT_APPS_DIRECTORY, ICONS_DIRECTORY } from './paths';
 import { createHappWindow, createOrShowMainWindow } from './windows';
+
+import z from 'zod';
+import { initTRPC } from '@trpc/server';
+import { observable } from '@trpc/server/observable';
+import { TypedEventEmitter } from './eventEmitters';
+
+const ee = new TypedEventEmitter();
+
+const t = initTRPC.create({ isServer: true });
 
 const rustUtils = require('hc-launcher-rust-utils');
 // import * as rustUtils from 'hc-launcher-rust-utils';
@@ -51,7 +61,7 @@ if (!isFirstInstance) {
 }
 
 app.on('second-instance', () => {
-  MAIN_WINDOW = createOrShowMainWindow(MAIN_WINDOW);
+  MAIN_WINDOW = createOrShowMainWindow(MAIN_WINDOW, router);
 });
 
 const LAUNCHER_FILE_SYSTEM = LauncherFileSystem.connect(app, args.profile);
@@ -86,14 +96,14 @@ app.whenReady().then(async () => {
   const icon = nativeImage.createFromPath(path.join(ICONS_DIRECTORY, '16x16.png'));
   tray = new Tray(icon);
 
-  MAIN_WINDOW = createOrShowMainWindow(MAIN_WINDOW);
+  MAIN_WINDOW = createOrShowMainWindow(MAIN_WINDOW, router);
 
   const contextMenu = Menu.buildFromTemplate([
     {
       label: 'Open',
       type: 'normal',
       click() {
-        MAIN_WINDOW = createOrShowMainWindow(MAIN_WINDOW);
+        MAIN_WINDOW = createOrShowMainWindow(MAIN_WINDOW, router);
       },
     },
     {
@@ -157,7 +167,7 @@ app.on('activate', () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) {
-    createOrShowMainWindow(MAIN_WINDOW);
+    createOrShowMainWindow(MAIN_WINDOW, router);
   }
 });
 
@@ -192,7 +202,7 @@ function handleLaunch() {
     }
     console.log(`Got lair version ${lairHandleTemp.stdout.toString()}`);
     if (!LAUNCHER_FILE_SYSTEM.keystoreInitialized()) {
-      MAIN_WINDOW.webContents.send('loading-progress-update', 'Starting lair keystore...');
+      ee.emit(loadingProgressUpdate, 'Starting lair keystore...');
       // TODO: https://github.com/holochain/launcher/issues/144
       // const lairHandle = childProcess.spawn(lairBinary, ["init", "-p"], { cwd: launcherFileSystem.keystoreDir });
       // lairHandle.stdin.write(password);
@@ -207,7 +217,7 @@ function handleLaunch() {
         password,
       );
     }
-    MAIN_WINDOW.webContents.send('loading-progress-update', 'Starting lair keystore...');
+    ee.emit(loadingProgressUpdate, 'Starting lair keystore...');
 
     // launch lair keystore
     const [lairHandle, lairUrl] = await launchLairKeystore(
@@ -220,7 +230,7 @@ function handleLaunch() {
     // create zome call signer
     ZOME_CALL_SIGNER = await rustUtils.ZomeCallSigner.connect(lairUrl, password);
 
-    MAIN_WINDOW.webContents.send('loading-progress-update', 'Starting Holochain...');
+    ee.emit(loadingProgressUpdate, 'Starting Holochain...');
 
     // launch holochain
     const holochainManager = await HolochainManager.launch(
@@ -256,3 +266,30 @@ function handleLaunch() {
     // }
   };
 }
+
+const router = t.router({
+  greeting: t.procedure.input(z.object({ data: z.string() })).query((req) => {
+    const { input } = req;
+
+    ee.emit(loadingProgressUpdate, 'Starting lair keystore...');
+
+    return {
+      text: `Hello ${input.data}` as const,
+    };
+  }),
+  onSetupProgressUpdate: t.procedure.subscription(() => {
+    return observable<LoadingProgressUpdate>((emit) => {
+      function onProgressUpdate(text: LoadingProgressUpdate) {
+        emit.next(text);
+      }
+
+      ee.on(loadingProgressUpdate, onProgressUpdate);
+
+      return () => {
+        ee.off(loadingProgressUpdate, onProgressUpdate);
+      };
+    });
+  }),
+});
+
+export type AppRouter = typeof router;
