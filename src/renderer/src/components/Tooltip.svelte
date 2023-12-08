@@ -2,10 +2,10 @@
 	export let text = '';
 </script>
 
-<div class="relative cursor-pointer group">
+<div class="group relative cursor-pointer">
 	<slot />
 	<span
-		class="absolute invisible group-hover:visible z-10 bottom-full left-1/2 transform -translate-x-1/2 px-3 py-1 bg-gray-700 text-white text-sm rounded-md transition-opacity opacity-0 group-hover:opacity-100"
+		class="invisible absolute bottom-full left-1/2 z-10 -translate-x-1/2 transform rounded-md bg-gray-700 px-3 py-1 text-sm text-white opacity-0 transition-opacity group-hover:visible group-hover:opacity-100"
 	>
 		{text}
 	</span>

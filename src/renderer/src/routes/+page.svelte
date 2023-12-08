@@ -22,7 +22,7 @@
 	languageStoreInstance.set(languageEN);
 </script>
 
-<div class="container h-full mx-auto flex justify-center items-center">
+<div class="container mx-auto flex h-full items-center justify-center">
 	<!-- {#if $query.isLoading}
 		<section class="card w-full">
 			<div class="p-4 space-y-4">
