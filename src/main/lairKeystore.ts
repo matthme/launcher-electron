@@ -1,7 +1,8 @@
 import * as childProcess from 'child_process';
 import split from 'split';
 
-import { LauncherEmitter, WRONG_PASSWORD } from './launcherEmitter';
+import { LAIR_ERROR, LAIR_LOG, LAIR_READY, WRONG_PASSWORD } from '../types';
+import { LauncherEmitter } from './launcherEmitter';
 
 export async function initializeLairKeystore(
   lairBinary: string,
@@ -15,7 +16,7 @@ export async function initializeLairKeystore(
   return new Promise((resolve) => {
     let killAfterNextLine = false;
     lairHandle.stdout.pipe(split()).on('data', (line: string) => {
-      launcherEmitter.emitLairLog(line);
+      launcherEmitter.emit(LAIR_LOG, line);
       if (killAfterNextLine) {
         lairHandle.kill();
         resolve();
@@ -38,16 +39,16 @@ export async function launchLairKeystore(
   lairHandle.stdin.end();
   // Wait for connection url or internal sodium error and return error or EventEmitter
   lairHandle.stderr.pipe(split()).on('data', (line: string) => {
-    launcherEmitter.emitLairError(line);
+    launcherEmitter.emit(LAIR_ERROR, line);
     if (line.includes('InternalSodium')) {
       launcherEmitter.emit(WRONG_PASSWORD);
     }
   });
   lairHandle.stdout.pipe(split()).on('data', (line: string) => {
-    launcherEmitter.emitLairLog(line);
+    launcherEmitter.emit(LAIR_LOG, line);
     if (line.includes('# lair-keystore connection_url #')) {
       const connectionUrl = line.split('#')[2].trim();
-      launcherEmitter.emitLairReady(connectionUrl);
+      launcherEmitter.emit(LAIR_READY, connectionUrl);
     }
   });
 

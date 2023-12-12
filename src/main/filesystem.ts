@@ -1,3 +1,4 @@
+import { App } from 'electron';
 import fs from 'fs';
 import path from 'path';
 
@@ -14,7 +15,7 @@ class LauncherFileSystem {
     this.appLogsDir = appLogsDir;
   }
 
-  static connect(app: Electron.App, profile?: Profile) {
+  static connect(app: App, profile?: Profile) {
     profile = profile ? profile : 'default';
 
     const defaultLogsPath = app.getPath('logs');

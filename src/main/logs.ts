@@ -1,7 +1,6 @@
 import path from 'path';
 import winston, { createLogger, format, transports } from 'winston';
 
-import { LauncherFileSystem } from './filesystem';
 import {
   HOLOCHAIN_ERROR,
   HOLOCHAIN_LOG,
@@ -9,9 +8,10 @@ import {
   HolochainVersion,
   LAIR_ERROR,
   LAIR_LOG,
-  LauncherEmitter,
   WASM_LOG,
-} from './launcherEmitter';
+} from '../types';
+import { LauncherFileSystem } from './filesystem';
+import { LauncherEmitter } from './launcherEmitter';
 
 const { combine, timestamp } = format;
 

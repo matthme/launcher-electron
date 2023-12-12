@@ -8,9 +8,8 @@ import { ZomeCallSigner, ZomeCallUnsignedNapi } from 'hc-launcher-rust-utils';
 import path from 'path';
 import z from 'zod';
 
-import { LoadingProgressUpdate, loadingProgressUpdate } from '../types';
+import { LOADING_PROGRESS_UPDATE, LoadingProgressUpdate } from '../types';
 import { holochianBinaries, lairBinary } from './binaries';
-import { TypedEventEmitter } from './eventEmitters';
 import { LauncherFileSystem } from './filesystem';
 import { HolochainManager } from './holochainManager';
 // import { AdminWebsocket } from '@holochain/client';
@@ -19,8 +18,6 @@ import { LauncherEmitter } from './launcherEmitter';
 import { setupLogs } from './logs';
 import { DEFAULT_APPS_DIRECTORY, ICONS_DIRECTORY } from './paths';
 import { createHappWindow, createOrShowMainWindow } from './windows';
-
-const ee = new TypedEventEmitter();
 
 const t = initTRPC.create({ isServer: true });
 
@@ -201,7 +198,7 @@ function handleLaunch() {
     }
     console.log(`Got lair version ${lairHandleTemp.stdout.toString()}`);
     if (!LAUNCHER_FILE_SYSTEM.keystoreInitialized()) {
-      ee.emit(loadingProgressUpdate, 'Starting lair keystore...');
+      LAUNCHER_EMITTER.emit(LOADING_PROGRESS_UPDATE, 'Starting lair keystore...');
       // TODO: https://github.com/holochain/launcher/issues/144
       // const lairHandle = childProcess.spawn(lairBinary, ["init", "-p"], { cwd: launcherFileSystem.keystoreDir });
       // lairHandle.stdin.write(password);
@@ -216,7 +213,7 @@ function handleLaunch() {
         password,
       );
     }
-    ee.emit(loadingProgressUpdate, 'Starting lair keystore...');
+    LAUNCHER_EMITTER.emit(LOADING_PROGRESS_UPDATE, 'Starting lair keystore...');
 
     // launch lair keystore
     const [lairHandle, lairUrl] = await launchLairKeystore(
@@ -229,7 +226,7 @@ function handleLaunch() {
     // create zome call signer
     ZOME_CALL_SIGNER = await rustUtils.ZomeCallSigner.connect(lairUrl, password);
 
-    ee.emit(loadingProgressUpdate, 'Starting Holochain...');
+    LAUNCHER_EMITTER.emit(LOADING_PROGRESS_UPDATE, 'Starting Holochain...');
 
     // launch holochain
     const holochainManager = await HolochainManager.launch(
@@ -270,7 +267,7 @@ const router = t.router({
   greeting: t.procedure.input(z.object({ data: z.string() })).query((req) => {
     const { input } = req;
 
-    ee.emit(loadingProgressUpdate, 'Starting lair keystore...');
+    LAUNCHER_EMITTER.emit(LOADING_PROGRESS_UPDATE, 'Starting lair keystore...');
 
     return {
       text: `Hello ${input.data}` as const,
@@ -282,10 +279,10 @@ const router = t.router({
         emit.next(text);
       }
 
-      ee.on(loadingProgressUpdate, onProgressUpdate);
+      LAUNCHER_EMITTER.on(LOADING_PROGRESS_UPDATE, onProgressUpdate);
 
       return () => {
-        ee.off(loadingProgressUpdate, onProgressUpdate);
+        LAUNCHER_EMITTER.off(LOADING_PROGRESS_UPDATE, onProgressUpdate);
       };
     });
   }),

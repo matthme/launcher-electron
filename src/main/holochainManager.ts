@@ -6,8 +6,9 @@ import getPort from 'get-port';
 import path from 'path';
 import split from 'split';
 
+import { APP_INSTALLED, HOLOCHAIN_ERROR, HOLOCHAIN_LOG, HolochainVersion } from '../types';
 import { LauncherFileSystem } from './filesystem';
-import { HolochainVersion, LauncherEmitter } from './launcherEmitter';
+import { LauncherEmitter } from './launcherEmitter';
 
 const rustUtils = require('hc-launcher-rust-utils');
 
@@ -74,13 +75,13 @@ export class HolochainManager {
     conductorHandle.stdin.write(password);
     conductorHandle.stdin.end();
     conductorHandle.stdout.pipe(split()).on('data', async (line: string) => {
-      launcherEmitter.emitHolochainLog({
+      launcherEmitter.emit(HOLOCHAIN_LOG, {
         version,
         data: line,
       });
     });
     conductorHandle.stderr.pipe(split()).on('data', (line: string) => {
-      launcherEmitter.emitHolochainError({
+      launcherEmitter.emit(HOLOCHAIN_ERROR, {
         version,
         data: line,
       });
@@ -145,7 +146,7 @@ export class HolochainManager {
     const installedApps = await this.adminWebsocket.listApps({});
     console.log('Installed apps: ', installedApps);
     this.installedApps = installedApps;
-    this.launcherEmitter.emitAppInstalled({
+    this.launcherEmitter.emit(APP_INSTALLED, {
       version: this.version,
       data: appInfo,
     });
