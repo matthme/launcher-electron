@@ -1,25 +1,24 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent, Tray, Menu, nativeImage } from 'electron';
-import path from 'path';
-import * as childProcess from 'child_process';
+import { initTRPC } from '@trpc/server';
+import { observable } from '@trpc/server/observable';
 import { ArgumentParser } from 'argparse';
-import { LoadingProgressUpdate, loadingProgressUpdate } from '../types';
-
-import { LauncherFileSystem } from './filesystem';
-import { holochianBinaries, lairBinary } from './binaries';
+import * as childProcess from 'child_process';
+import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent, Menu, nativeImage, Tray } from 'electron';
 import { ZomeCallSigner, ZomeCallUnsignedNapi } from 'hc-launcher-rust-utils';
+import path from 'path';
+import z from 'zod';
+
+import { LoadingProgressUpdate, loadingProgressUpdate } from '../types';
+import { holochianBinaries, lairBinary } from './binaries';
+import { TypedEventEmitter } from './eventEmitters';
+import { LauncherFileSystem } from './filesystem';
+import { HolochainManager } from './holochainManager';
 // import { AdminWebsocket } from '@holochain/client';
 import { initializeLairKeystore, launchLairKeystore } from './lairKeystore';
 import { LauncherEmitter } from './launcherEmitter';
-import { HolochainManager } from './holochainManager';
 import { setupLogs } from './logs';
 import { DEFAULT_APPS_DIRECTORY, ICONS_DIRECTORY } from './paths';
 import { createHappWindow, createOrShowMainWindow } from './windows';
-
-import z from 'zod';
-import { initTRPC } from '@trpc/server';
-import { observable } from '@trpc/server/observable';
-import { TypedEventEmitter } from './eventEmitters';
 
 const ee = new TypedEventEmitter();
 

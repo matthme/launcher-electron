@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { trpc } from '$lib';
-
 	// import { get } from 'svelte/store';
 	import { languageStoreInstance } from '$services';
 	import { languageEN } from '$utils';

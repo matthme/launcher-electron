@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import getPort from 'get-port';
-import fs from 'fs';
-import * as childProcess from 'child_process';
-import { HolochainVersion, LauncherEmitter } from './launcherEmitter';
-import split from 'split';
-import path from 'path';
 import { AdminWebsocket, AppInfo } from '@holochain/client';
+import * as childProcess from 'child_process';
+import fs from 'fs';
+import getPort from 'get-port';
+import path from 'path';
+import split from 'split';
+
 import { LauncherFileSystem } from './filesystem';
+import { HolochainVersion, LauncherEmitter } from './launcherEmitter';
 
 const rustUtils = require('hc-launcher-rust-utils');
 

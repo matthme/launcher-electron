@@ -1,5 +1,5 @@
-import path from 'path';
 import { app } from 'electron';
+import path from 'path';
 
 export const ICONS_DIRECTORY = app.isPackaged
   ? path.join(app.getAppPath(), '../app.asar.unpacked/resources/icons')

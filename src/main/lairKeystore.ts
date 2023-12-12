@@ -1,5 +1,6 @@
 import * as childProcess from 'child_process';
 import split from 'split';
+
 import { LauncherEmitter, WRONG_PASSWORD } from './launcherEmitter';
 
 export async function initializeLairKeystore(

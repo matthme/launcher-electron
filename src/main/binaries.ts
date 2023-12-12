@@ -1,5 +1,5 @@
-import * as path from 'path';
 import { app } from 'electron';
+import * as path from 'path';
 
 const binariesDirectory = app.isPackaged
   ? path.join(app.getAppPath(), '../app.asar.unpacked/resources/bins')

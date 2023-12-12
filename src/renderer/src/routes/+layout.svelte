@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.postcss';
-	import { AppShell, AppBar } from '@skeletonlabs/skeleton';
+
+	import { AppBar, AppShell } from '@skeletonlabs/skeleton';
 	import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query';
 
 	const queryClient = new QueryClient();

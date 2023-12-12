@@ -1,9 +1,9 @@
-import { ipcLink } from 'electron-trpc/renderer';
-import type { AppRouter } from '../../../main';
-import { createTRPCProxyClient } from '@trpc/client';
 import type { QueryClient } from '@tanstack/svelte-query';
-
+import { createTRPCProxyClient } from '@trpc/client';
+import { ipcLink } from 'electron-trpc/renderer';
 import { svelteQueryWrapper } from 'trpc-svelte-query-adapter';
+
+import type { AppRouter } from '../../../main';
 
 const client = createTRPCProxyClient<AppRouter>({
 	links: [ipcLink()]

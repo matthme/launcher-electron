@@ -3,9 +3,10 @@ import { BrowserWindow, net, session } from 'electron';
 import { createIPCHandler } from 'electron-trpc/main';
 import path from 'path';
 import url from 'url';
-import { setLinkOpenHandlers } from './utils';
-import { LauncherFileSystem } from './filesystem';
+
 import type { AppRouter } from '.';
+import { LauncherFileSystem } from './filesystem';
+import { setLinkOpenHandlers } from './utils';
 
 export const createOrShowMainWindow = (
   mainWindow: BrowserWindow | undefined | null,

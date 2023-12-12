@@ -1,5 +1,6 @@
-import winston, { createLogger, transports, format } from 'winston';
 import path from 'path';
+import winston, { createLogger, format, transports } from 'winston';
+
 import { LauncherFileSystem } from './filesystem';
 import {
   HOLOCHAIN_ERROR,

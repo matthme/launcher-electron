@@ -8,7 +8,7 @@
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"lint": "prettier --check 'src/**/*.{js,ts,svelte,json}' && eslint 'src/**/*.{js,ts,svelte}'",
+		"lint": "prettier --check 'src/**/*.{js,ts,svelte,json}' && eslint 'src/**/*.{js,ts,svelte}' --fix",
 		"format": "prettier --write 'src/**/*.{js,ts,svelte,json}'"
 	},
 	"devDependencies": {
