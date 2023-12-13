@@ -21,9 +21,8 @@ const config = {
 			assets: buildDir
 		}),
 		alias: {
-			$services: path.resolve('./src/services'),
-			$utils: path.resolve('./src/utils'),
-			$components: path.resolve('./src/components')
+			$components: path.resolve('./src/lib/components'),
+			$services: path.resolve('./src/lib/services')
 		}
 	}
 };

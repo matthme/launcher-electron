@@ -264,14 +264,12 @@ function handleLaunch() {
 }
 
 const router = t.router({
-  greeting: t.procedure.input(z.object({ data: z.string() })).query((req) => {
-    const { input } = req;
-
-    LAUNCHER_EMITTER.emit(LOADING_PROGRESS_UPDATE, 'Starting lair keystore...');
-
-    return {
-      text: `Hello ${input.data}` as const,
-    };
+  lairSetupRequired: t.procedure.query(() => {
+    const isInitialized = LAUNCHER_FILE_SYSTEM.keystoreInitialized();
+    if (!z.boolean().safeParse(isInitialized).success) {
+      throw new Error('Expected boolean value for keystore initialization status');
+    }
+    return !isInitialized;
   }),
   onSetupProgressUpdate: t.procedure.subscription(() => {
     return observable<LoadingProgressUpdate>((emit) => {

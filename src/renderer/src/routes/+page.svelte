@@ -1,59 +1,21 @@
 <script lang="ts">
-	import { trpc } from '$lib';
-	// import { get } from 'svelte/store';
-	import { languageStoreInstance } from '$services';
-	import { languageEN } from '$utils';
-	// import Tooltip from '$components/Tooltip.svelte';
+	import { ProgressRadial } from '@skeletonlabs/skeleton';
+
+	import { goto } from '$app/navigation';
+	import { Error } from '$components';
+	import { trpc } from '$services';
 
 	const client = trpc();
 
-	const foo = client.greeting.createQuery({ data: 'test' });
+	const lairSetupRequired = client.lairSetupRequired.createQuery();
 
-	client.onSetupProgressUpdate.createSubscription(undefined, {
-		onData: (data) => {
-			console.log(data);
-		},
-		onError: (error) => {
-			console.log(error);
-		}
-	});
-
-	languageStoreInstance.set(languageEN);
+	$: if ($lairSetupRequired.data) {
+		goto('/setup-lair');
+	}
 </script>
 
-<div class="container mx-auto flex h-full items-center justify-center">
-	<!-- {#if $query.isLoading}
-		<section class="card w-full">
-			<div class="p-4 space-y-4">
-				<div class="placeholder" />
-				<div class="grid grid-cols-3 gap-8">
-					<div class="placeholder" />
-					<div class="placeholder" />
-					<div class="placeholder" />
-				</div>
-				<div class="grid grid-cols-4 gap-4">
-					<div class="placeholder" />
-					<div class="placeholder" />
-					<div class="placeholder" />
-					<div class="placeholder" />
-				</div>
-			</div>
-		</section>
-	{:else if $query.error}
-		An error has occurred:
-		{$query.error}
-	{:else}
-		<div class="space-y-10 text-center flex flex-col items-center">
-			<h1 class="h1">Welcome to Holochain Launcher.</h1>
-			<h2>Version: ${$query.data}</h2>
-			<h2>Language: {get(languageStoreInstance)}</h2>
-
-			<Tooltip text="This is a custom tooltip for SvelteKit!">Hover over me</Tooltip>
-
-			<button type="button" class="btn variant-filled">
-				<span>Button</span>
-			</button>
-		</div>
-	{/if} -->
-	<span>{$foo.data?.text}</span>
-</div>
+{#if $lairSetupRequired.isLoading}
+	<ProgressRadial />
+{:else if $lairSetupRequired.error}
+	<Error text="Error loading lair setup status" />
+{/if}
