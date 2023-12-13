@@ -141,9 +141,6 @@ app.whenReady().then(async () => {
   ipcMain.handle('get-app-port', async () => {
     return HOLOCHAIN_MANAGER!.appPort;
   });
-  ipcMain.handle('lair-setup-required', async () => {
-    return !LAUNCHER_FILE_SYSTEM.keystoreInitialized();
-  });
   ipcMain.handle('launch', handleLaunch());
   ipcMain.handle('ipc-handlers-ready', () => true);
 
