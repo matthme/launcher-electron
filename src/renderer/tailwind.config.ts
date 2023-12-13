@@ -1,4 +1,5 @@
 import { skeleton } from '@skeletonlabs/tw-plugin';
+import forms from '@tailwindcss/forms';
 import { join } from 'path';
 import type { Config } from 'tailwindcss';
 
@@ -18,6 +19,7 @@ export default {
 			themes: {
 				custom: [appTheme]
 			}
-		})
+		}),
+		forms
 	]
 } satisfies Config;

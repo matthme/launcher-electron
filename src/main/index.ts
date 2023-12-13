@@ -141,7 +141,7 @@ app.whenReady().then(async () => {
   ipcMain.handle('get-app-port', async () => {
     return HOLOCHAIN_MANAGER!.appPort;
   });
-  ipcMain.handle('launch', handleLaunch());
+
   ipcMain.handle('ipc-handlers-ready', () => true);
 
   MAIN_WINDOW!.webContents.send('ipc-handlers-ready');
@@ -181,86 +181,77 @@ app.on('quit', () => {
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
 
-function handleLaunch() {
-  return async (_e, password) => {
-    if (!MAIN_WINDOW) throw new Error('Main window needs to exist before launching.');
+async function handleLaunch(password: string) {
+  if (!MAIN_WINDOW) throw new Error('Main window needs to exist before launching.');
 
-    // const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-    // await delay(5000);
+  // const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  // await delay(5000);
 
-    // Initialize lair if necessary
-    const lairHandleTemp = childProcess.spawnSync(lairBinary, ['--version']);
-    if (!lairHandleTemp.stdout) {
-      console.error(`Failed to run lair-keystore binary:\n${lairHandleTemp}`);
-    }
-    console.log(`Got lair version ${lairHandleTemp.stdout.toString()}`);
-    if (!LAUNCHER_FILE_SYSTEM.keystoreInitialized()) {
-      LAUNCHER_EMITTER.emit(LOADING_PROGRESS_UPDATE, 'Starting lair keystore...');
-      // TODO: https://github.com/holochain/launcher/issues/144
-      // const lairHandle = childProcess.spawn(lairBinary, ["init", "-p"], { cwd: launcherFileSystem.keystoreDir });
-      // lairHandle.stdin.write(password);
-      // lairHandle.stdin.end();
-      // lairHandle.stdout.pipe(split()).on("data", (line: string) => {
-      //   console.log("[LAIR INIT]: ", line);
-      // })
-      await initializeLairKeystore(
-        lairBinary,
-        LAUNCHER_FILE_SYSTEM.keystoreDir,
-        LAUNCHER_EMITTER,
-        password,
-      );
-    }
+  // Initialize lair if necessary
+  const lairHandleTemp = childProcess.spawnSync(lairBinary, ['--version']);
+  if (!lairHandleTemp.stdout) {
+    console.error(`Failed to run lair-keystore binary:\n${lairHandleTemp}`);
+  }
+  console.log(`Got lair version ${lairHandleTemp.stdout.toString()}`);
+  if (!LAUNCHER_FILE_SYSTEM.keystoreInitialized()) {
     LAUNCHER_EMITTER.emit(LOADING_PROGRESS_UPDATE, 'Starting lair keystore...');
-
-    // launch lair keystore
-    const [lairHandle, lairUrl] = await launchLairKeystore(
+    // TODO: https://github.com/holochain/launcher/issues/144
+    // const lairHandle = childProcess.spawn(lairBinary, ["init", "-p"], { cwd: launcherFileSystem.keystoreDir });
+    // lairHandle.stdin.write(password);
+    // lairHandle.stdin.end();
+    // lairHandle.stdout.pipe(split()).on("data", (line: string) => {
+    //   console.log("[LAIR INIT]: ", line);
+    // })
+    await initializeLairKeystore(
       lairBinary,
       LAUNCHER_FILE_SYSTEM.keystoreDir,
       LAUNCHER_EMITTER,
       password,
     );
-    LAIR_HANDLE = lairHandle;
-    // create zome call signer
-    ZOME_CALL_SIGNER = await rustUtils.ZomeCallSigner.connect(lairUrl, password);
+  }
+  LAUNCHER_EMITTER.emit(LOADING_PROGRESS_UPDATE, 'Starting lair keystore...');
 
-    LAUNCHER_EMITTER.emit(LOADING_PROGRESS_UPDATE, 'Starting Holochain...');
+  // launch lair keystore
+  const [lairHandle, lairUrl] = await launchLairKeystore(
+    lairBinary,
+    LAUNCHER_FILE_SYSTEM.keystoreDir,
+    LAUNCHER_EMITTER,
+    password,
+  );
+  LAIR_HANDLE = lairHandle;
+  // create zome call signer
+  ZOME_CALL_SIGNER = await rustUtils.ZomeCallSigner.connect(lairUrl, password);
 
-    // launch holochain
-    const holochainManager = await HolochainManager.launch(
-      LAUNCHER_EMITTER,
-      LAUNCHER_FILE_SYSTEM,
-      holochianBinaries['holochain-0.2.3'],
-      password,
-      '0.2.3',
-      LAUNCHER_FILE_SYSTEM.holochainDir,
-      LAUNCHER_FILE_SYSTEM.conductorConfigPath,
-      lairUrl,
-      'https://bootstrap.holo.host',
-      'wss://signal.holo.host',
-    );
-    // ADMIN_PORT = holochainManager.adminPort;
-    // ADMIN_WEBSOCKET = holochainManager.adminWebsocket;
-    APP_PORT = holochainManager.appPort;
-    HOLOCHAIN_MANAGER = holochainManager;
+  LAUNCHER_EMITTER.emit(LOADING_PROGRESS_UPDATE, 'Starting Holochain...');
 
-    MAIN_WINDOW.webContents.send('holochain-ready');
+  // launch holochain
+  const holochainManager = await HolochainManager.launch(
+    LAUNCHER_EMITTER,
+    LAUNCHER_FILE_SYSTEM,
+    holochianBinaries['holochain-0.2.3'],
+    password,
+    '0.2.3',
+    LAUNCHER_FILE_SYSTEM.holochainDir,
+    LAUNCHER_FILE_SYSTEM.conductorConfigPath,
+    lairUrl,
+    'https://bootstrap.holo.host',
+    'wss://signal.holo.host',
+  );
+  // ADMIN_PORT = holochainManager.adminPort;
+  // ADMIN_WEBSOCKET = holochainManager.adminWebsocket;
+  APP_PORT = holochainManager.appPort;
+  HOLOCHAIN_MANAGER = holochainManager;
 
-    // Install default apps if necessary:
-    // if (
-    //   !HOLOCHAIN_MANAGER.installedApps.map((appInfo) => appInfo.installed_app_id).includes('KanDo')
-    // ) {
-    //   console.log('Installing default app KanDo...');
-    //   await HOLOCHAIN_MANAGER.installApp(
-    //     path.join(DEFAULT_APPS_DIRECTORY, 'kando.webhapp'),
-    //     'KanDo',
-    //     'launcher-electron-prototype',
-    //   );
-    //   console.log('KanDo isntalled.');
-    // }
-  };
+  return;
 }
 
 const router = t.router({
+  launch: t.procedure.input(z.object({ password: z.string() })).mutation((req) => {
+    const {
+      input: { password },
+    } = req;
+    return handleLaunch(password);
+  }),
   lairSetupRequired: t.procedure.query(() => {
     const isInitialized = LAUNCHER_FILE_SYSTEM.keystoreInitialized();
     if (!z.boolean().safeParse(isInitialized).success) {

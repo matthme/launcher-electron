@@ -1,17 +1,36 @@
 <script lang="ts">
-	import { writable } from 'svelte/store';
+	import { goto } from '$app/navigation';
+	import { trpc } from '$services';
 
-	const passwordInput = writable('');
-	const confirmPasswordInput = writable('');
-	const passwordsDontMatch = writable(false);
+	const client = trpc();
+
+	const lairSetupRequired = client.launch.createMutation();
+
+	let passwordInput = '';
+	let confirmPasswordInput = '';
+	let passwordsDontMatch = false;
+	let setupProgress = '';
 
 	const checkPasswords = () => {
-		passwordsDontMatch.set(passwordInput !== confirmPasswordInput);
+		passwordsDontMatch = passwordInput !== confirmPasswordInput;
 	};
 
 	const setupAndLaunch = () => {
-		// Implement setup and launch logic here
+		$lairSetupRequired.mutate(
+			{ password: passwordInput },
+			{
+				onSuccess: () => {
+					goto('/app');
+				}
+			}
+		);
 	};
+
+	client.onSetupProgressUpdate.createSubscription(undefined, {
+		onData: (data) => {
+			setupProgress = data;
+		}
+	});
 </script>
 
 <div class="column center-content">
@@ -23,7 +42,7 @@
 	<h3>Select Password:</h3>
 	<!-- svelte-ignore a11y-autofocus -->
 	<input
-		bind:value={$passwordInput}
+		bind:value={passwordInput}
 		autofocus
 		on:input={checkPasswords}
 		id="password-input"
@@ -32,21 +51,29 @@
 	/>
 	<h3>Confirm Password:</h3>
 	<input
-		bind:value={$confirmPasswordInput}
+		bind:value={confirmPasswordInput}
 		on:input={checkPasswords}
 		id="confirm-password-input"
 		type="password"
 		class="input"
 	/>
-	<div class={$passwordsDontMatch ? 'input-error' : 'color-transparent'}>
-		Passwords don't match!
-	</div>
+	<div class={passwordsDontMatch ? 'input-error' : 'color-transparent'}>Passwords don't match!</div>
 	<button
 		on:click={setupAndLaunch}
 		tabindex="0"
 		class="mb-8 mt-2"
-		disabled={!$passwordInput || $passwordsDontMatch}
+		disabled={!passwordInput || passwordsDontMatch || $lairSetupRequired.isPending}
 	>
-		Setup and Launch
+		{$lairSetupRequired.isPending ? 'Loading...' : 'Setup and Launch'}
 	</button>
+	{#if setupProgress}
+		<div class="setup-progress">
+			{setupProgress}
+		</div>
+	{/if}
+	{#if $lairSetupRequired.isError}
+		<div class="input-error">
+			{$lairSetupRequired.error.message}
+		</div>
+	{/if}
 </div>

@@ -1,23 +1,52 @@
 <script lang="ts">
-	import { writable } from 'svelte/store';
+	import { goto } from '$app/navigation';
+	import { trpc } from '$services';
 
-	const passwordInput = writable('');
+	let passwordInput = '';
+	let setupProgress = '';
+
+	const client = trpc();
+
+	const lairSetupRequired = client.launch.createMutation();
 
 	const setupAndLaunch = () => {
-		// Implement setup and launch logic here
+		$lairSetupRequired.mutate(
+			{ password: passwordInput },
+			{
+				onSuccess: () => {
+					goto('/app');
+				}
+			}
+		);
 	};
+
+	client.onSetupProgressUpdate.createSubscription(undefined, {
+		onData: (data) => {
+			setupProgress = data;
+		}
+	});
 </script>
 
 <div class="column center-content">
-	<h3>Enter Password:</h3>
+	<h3 class="header">Enter Password:</h3>
 	<!-- svelte-ignore a11y-autofocus -->
-	<input autofocus bind:value={$passwordInput} id="password-input" type="password" />
+	<input autofocus bind:value={passwordInput} id="password-input" type="password" class="input" />
 	<button
 		on:click={setupAndLaunch}
 		tabindex="0"
-		style="margin-top: 30px; margin-bottom: 30px;"
-		disabled={!$passwordInput}
+		class="button"
+		disabled={!passwordInput || $lairSetupRequired.isPending}
 	>
-		Launch
+		{$lairSetupRequired.isPending ? 'Loading...' : 'Launch'}
 	</button>
+	{#if setupProgress}
+		<div class="setup-progress">
+			{setupProgress}
+		</div>
+	{/if}
+	{#if $lairSetupRequired.isError}
+		<div class="input-error">
+			{$lairSetupRequired.error.message}
+		</div>
+	{/if}
 </div>
