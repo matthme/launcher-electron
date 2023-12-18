@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import semver from 'semver';
+import { HolochainDataRoot } from './sharedTypes';
 
 export type Profile = string;
 
@@ -61,20 +62,27 @@ class LauncherFileSystem {
     return path.join(this.profileDataDir, 'holochain');
   }
 
-  holochainPartitionDir(partition: string) {
-    return path.join(this.holochainDir, partition);
+  holochainPartitionDir(partitionName: string) {
+    return path.join(this.holochainDir, partitionName);
   }
 
-  conductorConfigPath(partition: string) {
-    return path.join(this.holochainDir, partition, 'conductor-config.yaml');
+  conductorConfigPath(partitionName: string) {
+    return path.join(this.holochainDir, partitionName, 'conductor-config.yaml');
   }
 
-  conductorEnvironmentDir(partition: string) {
-    return path.join(this.holochainDir, partition, 'dbs');
+  conductorEnvironmentDir(partitionName: string) {
+    return path.join(this.holochainDir, partitionName, 'dbs');
   }
 
-  happUiDir(appId: string, partition: string) {
-    return path.join(this.holochainPartitionDir(partition), 'apps', appId, 'ui');
+  happUiDir(appId: string, holochainDataRoot: HolochainDataRoot) {
+    switch (holochainDataRoot.type) {
+      case 'partition':
+        return path.join(this.holochainPartitionDir(holochainDataRoot.name), 'apps', appId, 'ui');
+      case 'external':
+        return path.join(holochainDataRoot.path, 'apps', 'ui');
+      default:
+        throw new Error('Got invalid data root type: ', (holochainDataRoot as any).type);
+    }
   }
 
   happConfigPath(appId: string, partition: string) {

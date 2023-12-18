@@ -11,7 +11,6 @@ import {
 } from 'electron';
 import path from 'path';
 import * as childProcess from 'child_process';
-import getPort from 'get-port';
 import { ArgumentParser } from 'argparse';
 
 import { LauncherFileSystem } from './filesystem';
@@ -24,7 +23,7 @@ import { setupLogs } from './logs';
 import { DEFAULT_APPS_DIRECTORY, ICONS_DIRECTORY } from './paths';
 import { createHappWindow, createOrShowMainWindow } from './windows';
 import { LAIR_BINARY } from './binaries';
-import { ExtendedAppInfo, RunningHolochain } from './sharedTypes';
+import { ExtendedAppInfo, RunningHolochain, WindowInfo } from './sharedTypes';
 
 const rustUtils = require('hc-launcher-rust-utils');
 // import * as rustUtils from 'hc-launcher-rust-utils';
@@ -38,7 +37,6 @@ if (process.env.NODE_ENV === 'development') {
 
 console.log('APP PATH: ', app.getAppPath());
 console.log('RUNNING ON PLATFORM: ', process.platform);
-
 const parser = new ArgumentParser({
   description: 'Holochain Launcher',
 });
@@ -77,17 +75,27 @@ const LAUNCHER_EMITTER = new LauncherEmitter();
 
 setupLogs(LAUNCHER_EMITTER, LAUNCHER_FILE_SYSTEM);
 
-let ZOME_CALL_SIGNER: ZomeCallSigner | undefined;
+let DEAFULT_ZOME_CALL_SIGNER: ZomeCallSigner | undefined;
+// Zome call signers for external binaries
+const CUSTOM_ZOME_CALL_SIGNERS: Record<number, ZomeCallSigner> = {};
 // let ADMIN_WEBSOCKET: AdminWebsocket | undefined;
 // let ADMIN_PORT: number | undefined;
-let APP_PORT: number | undefined;
-let HOLOCHAIN_MANAGERS: Record<string, HolochainManager> = {}; // holochain managers sorted by partition
+let HOLOCHAIN_MANAGERS: Record<string, HolochainManager> = {}; // holochain managers sorted by HolochainDataRoot.name
 let LAIR_HANDLE: childProcess.ChildProcessWithoutNullStreams | undefined;
 let MAIN_WINDOW: BrowserWindow | undefined | null;
+const WINDOW_INFO_MAP: Record<number, WindowInfo> = {}; // AgentPubKey by webContents.id - used to verify origin of zome call requests
 
 const handleSignZomeCall = (e: IpcMainInvokeEvent, zomeCall: ZomeCallUnsignedNapi) => {
-  if (!ZOME_CALL_SIGNER) throw Error('Lair signer is not ready');
-  return ZOME_CALL_SIGNER.signZomeCall(zomeCall);
+  const windowInfo = WINDOW_INFO_MAP[e.sender.id];
+  if (zomeCall.provenance.toString() !== Array.from(windowInfo.agentPubKey).toString())
+    return Promise.reject('Agent public key unauthorized.');
+  if (!DEAFULT_ZOME_CALL_SIGNER) throw Error('Lair signer is not ready');
+  if (windowInfo.adminPort) {
+    // In case of externally running binaries we need to use a custom zome call signer
+    const zomeCallSigner = CUSTOM_ZOME_CALL_SIGNERS[windowInfo.adminPort];
+    return zomeCallSigner.signZomeCall(zomeCall);
+  }
+  return DEAFULT_ZOME_CALL_SIGNER.signZomeCall(zomeCall);
 };
 
 // // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -128,10 +136,24 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('sign-zome-call', handleSignZomeCall);
   ipcMain.handle('open-app', async (_e, extendedAppInfo: ExtendedAppInfo) => {
-    const holochainManager = HOLOCHAIN_MANAGERS[extendedAppInfo.partition];
+    const holochainManager = HOLOCHAIN_MANAGERS[extendedAppInfo.holochainDataRoot.name];
     if (!holochainManager)
       throw new Error('Responsible Holochain Manager seems not to be running.');
-    createHappWindow(extendedAppInfo, LAUNCHER_FILE_SYSTEM, holochainManager.appPort);
+    const happWindow = createHappWindow(
+      extendedAppInfo,
+      LAUNCHER_FILE_SYSTEM,
+      holochainManager.appPort,
+    );
+    WINDOW_INFO_MAP[happWindow.webContents.id] = {
+      agentPubKey: extendedAppInfo.appInfo.agent_pub_key,
+      adminPort:
+        extendedAppInfo.version.type === 'running-external'
+          ? extendedAppInfo.version.adminPort
+          : undefined,
+    };
+    happWindow.on('close', () => {
+      delete WINDOW_INFO_MAP[happWindow.webContents.id];
+    });
   });
   ipcMain.handle(
     'install-app',
@@ -152,14 +174,14 @@ app.whenReady().then(async () => {
       await holochainManager.installWebHapp(filePath, appId, networkSeed);
     },
   );
-  ipcMain.handle('uninstall-app', async (_e, appId: string, partition: string) => {
-    const holochainManager = HOLOCHAIN_MANAGERS[partition];
+  ipcMain.handle('uninstall-app', async (_e, app: ExtendedAppInfo) => {
+    const holochainManager = HOLOCHAIN_MANAGERS[app.holochainDataRoot.name];
     if (!holochainManager) {
       throw new Error(
-        `No running Holochain Manager found for the specified partition: ${partition}`,
+        `No running Holochain Manager found for the specified partition: ${app.holochainDataRoot.name}`,
       );
     }
-    await holochainManager.uninstallApp(appId);
+    await holochainManager.uninstallApp(app.appInfo.installed_app_id);
   });
   ipcMain.handle('get-installed-apps', async () => {
     return Object.values(HOLOCHAIN_MANAGERS)
@@ -168,7 +190,7 @@ app.whenReady().then(async () => {
           return {
             appInfo: app,
             version: manager.version,
-            partition: manager.partition,
+            holochainDataRoot: manager.holochainDataRoot,
           };
         }),
       )
@@ -260,11 +282,9 @@ function handleLaunch() {
     );
     LAIR_HANDLE = lairHandle;
     // create zome call signer
-    ZOME_CALL_SIGNER = await rustUtils.ZomeCallSigner.connect(lairUrl, password);
+    DEAFULT_ZOME_CALL_SIGNER = await rustUtils.ZomeCallSigner.connect(lairUrl, password);
 
     MAIN_WINDOW.webContents.send('loading-progress-update', 'Starting Holochain...');
-
-    const adminPort = await getPort();
 
     // launch holochain
     const holochainManager = await HolochainManager.launch(
@@ -275,7 +295,6 @@ function handleLaunch() {
         type: 'built-in',
         version: '0.2.3',
       },
-      adminPort,
       lairUrl,
       undefined,
       undefined,
@@ -288,7 +307,7 @@ function handleLaunch() {
     emitToWindow<RunningHolochain[]>(MAIN_WINDOW, 'holochain-ready', [
       {
         version: holochainManager.version,
-        partition: holochainManager.partition,
+        holochainDataRoot: holochainManager.holochainDataRoot,
         appPort: holochainManager.appPort,
       },
     ]);

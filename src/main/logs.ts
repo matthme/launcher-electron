@@ -56,8 +56,8 @@ function logHolochain(
   const holochainPartition = holochainData.partition;
   const identifier = identifierFromHolochainData(holochainData);
   const line = (holochainData as HolochainData).data;
-  const logLine = `[${identifier}]: ${line}`;
-  console.log(logLine);
+  // const logLine = `[${identifier}]: ${line}`;
+  // console.log(logLine);
   let logger = HOLOCHAIN_LOGGERS[holochainPartition];
   if (logger) {
     logger.log('info', line);

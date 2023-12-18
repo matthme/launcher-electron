@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { HolochainVersion } from './sharedTypes';
+import { HolochainDataRoot, HolochainVersion } from './sharedTypes';
 
 export type APP_INSTALLED = 'app-installed';
 export const APP_INSTALLED = 'app-installed';
@@ -74,7 +74,7 @@ export class LauncherEmitter extends EventEmitter {
 
 export interface HolochainData {
   version: HolochainVersion;
-  partition: string;
+  holochainDataRoot: HolochainDataRoot;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any;
 }

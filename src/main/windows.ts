@@ -56,13 +56,13 @@ export const createHappWindow = (
   extendedAppInfo: ExtendedAppInfo,
   launcherFileSystem: LauncherFileSystem,
   appPort: number | undefined,
-) => {
+): BrowserWindow => {
   // TODO create mapping between installed-app-id's and window ids
   if (!appPort) throw new Error('App port not defined.');
   const appId = extendedAppInfo.appInfo.installed_app_id;
-  const holochainPartition = extendedAppInfo.partition;
-  const partition = `persist:${holochainPartition}#${appId}`;
-  const ses = session.fromPartition(partition);
+  const partitionName = extendedAppInfo.holochainDataRoot.name;
+  const browserPartition = `persist:${partitionName}#${appId}`;
+  const ses = session.fromPartition(browserPartition);
   ses.protocol.handle('webhapp', async (request) => {
     // console.log("### Got file request: ", request);
     const uriWithoutProtocol = request.url.slice('webhapp://'.length);
@@ -73,7 +73,12 @@ export const createHappWindow = (
 
     const resource = net.fetch(
       url
-        .pathToFileURL(path.join(launcherFileSystem.happUiDir(appId, holochainPartition), filePath))
+        .pathToFileURL(
+          path.join(
+            launcherFileSystem.happUiDir(appId, extendedAppInfo.holochainDataRoot),
+            filePath,
+          ),
+        )
         .toString(),
     );
     if (!filePath.endsWith('index.html')) {
@@ -96,7 +101,7 @@ export const createHappWindow = (
     height: 800,
     webPreferences: {
       preload: path.resolve(__dirname, '../preload/happs.js'),
-      partition,
+      partition: browserPartition,
     },
   });
 
@@ -106,11 +111,6 @@ export const createHappWindow = (
 
   setLinkOpenHandlers(happWindow);
 
-  happWindow.on('close', () => {
-    console.log(`Happ window with frame id ${happWindow.id} about to be closed.`);
-    // prevent closing here and hide instead in case notifications are to be received from this happ UI
-  });
-
   happWindow.on('closed', () => {
     console.log(`Happ window with frame id ${happWindow.id} closed.`);
     // remove protocol handler
@@ -119,6 +119,7 @@ export const createHappWindow = (
   });
   console.log('Loading happ window file');
   happWindow.loadURL(`webhapp://webhappwindow/index.html`);
+  return happWindow;
 };
 
 // // Currently unused

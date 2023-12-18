@@ -113,9 +113,7 @@ export class AdminWindow extends LitElement {
 
   async uninstallApp(app: ExtendedAppInfo) {
     console.log('Uninstalling app...');
-    const appId = app.appInfo.installed_app_id;
-    const partition = app.partition;
-    await window.electronAPI.uninstallApp(appId, partition);
+    await window.electronAPI.uninstallApp(app);
     this.installedApps = await window.electronAPI.getInstalledApps();
   }
 
