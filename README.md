@@ -32,7 +32,6 @@ Download default app
 
 ```bash
 mkdir resources/default-apps
-yarn fetch:default-apps
 ```
 
 ### Development
