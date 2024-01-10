@@ -80,12 +80,11 @@ setupLogs(LAUNCHER_EMITTER, LAUNCHER_FILE_SYSTEM);
 let ZOME_CALL_SIGNER: ZomeCallSigner | undefined;
 // let ADMIN_WEBSOCKET: AdminWebsocket | undefined;
 // let ADMIN_PORT: number | undefined;
-let APP_PORT: number | undefined;
 let HOLOCHAIN_MANAGERS: Record<string, HolochainManager> = {}; // holochain managers sorted by partition
 let LAIR_HANDLE: childProcess.ChildProcessWithoutNullStreams | undefined;
 let MAIN_WINDOW: BrowserWindow | undefined | null;
 
-const handleSignZomeCall = (e: IpcMainInvokeEvent, zomeCall: ZomeCallUnsignedNapi) => {
+const handleSignZomeCall = (_e: IpcMainInvokeEvent, zomeCall: ZomeCallUnsignedNapi) => {
   if (!ZOME_CALL_SIGNER) throw Error('Lair signer is not ready');
   return ZOME_CALL_SIGNER.signZomeCall(zomeCall);
 };
