@@ -29,7 +29,7 @@
 import { LitElement, css, html } from 'lit';
 import { customElement, query, state } from 'lit/decorators.js';
 import { sharedStyles } from './sharedStyles';
-import { AppWebsocket } from '@holochain/client';
+import { AppWebsocket, CellId, CellInfo, encodeHashToBase64 } from '@holochain/client';
 import './components/password.ts';
 import { ExtendedAppInfo } from '../../main/sharedTypes';
 import { ElectronAPI } from '../../main/sharedTypes';
@@ -219,43 +219,30 @@ export class AdminWindow extends LitElement {
               Install app
             </button>
           </div>
-          <div class="column install-box">
-            <h2>Install KanDo</h2>
-            <div style="margin-bottom: 30px;">KanDo is an app for collaborative KanBan boards and available by default as an example app.</div>
-            <div style="margin-top: 10px; margin-bottom: 3px; font-size: 15px;">Choose a name for the KanDo instance<br>(You can install more than one instance of KanDo):</div>
-            <input
-              type="text"
-              placeholder="Custom App Name"
-              id="kando-id-input-field"
-              @input=${this.checkKandoInstallValidity}
-            />
-            <div style="margin-top: 10px; margin-bottom: 3px; font-size: 15px;">Choose a network seed (Optional):</div>
-            <input
-              type="text"
-              placeholder="Network Seed (optional)"
-              id="kando-network-seed-input-field"
-            />
-            <button
-              style="margin-top: 10px; height: 28px;"
-              id="install-app-button"
-              .disabled=${this.kandoInstallDisabled}
-              @click=${this.installKando}
-            >
-              Install
-            </button>
-          </div>
         </div>
         <h2>Installed Apps</h2>
         ${this.installedApps.length === 0 ? html`No apps installed.` : ``}
         ${this.installedApps.map((app) => {
           return html`
-            <div class="row app-card">
-              <div>${app.appInfo.installed_app_id}</div>
-              <span style="flex: 1;"></span>
-              <button style="margin-right: 10px;" @click=${() => this.uninstallApp(app)}>
-                UNINSTALL
-              </button>
-              <button @click=${() => this.openApp(app)}>OPEN</button>
+            <div class="column app-card" style="align-items: flex-start;">
+              <div class="row" style="flex: 1; align-items: center; width: 100%;">
+                <div>${app.appInfo.installed_app_id}</div>
+                <span style="display: flex; flex: 1;"></span>
+                <button style="margin-right: 10px;" @click=${() => this.uninstallApp(app)}>
+                  UNINSTALL
+                </button>
+                <button @click=${() => this.openApp(app)}>OPEN</button>
+              </div>
+              <div class="column" style="font-size: 16px;">
+                <b>DNA hashes:</b>
+                ${Object.entries(app.appInfo.cell_info).map(([roleName, cellInfo]) => {
+                  const cellId = getCellId(cellInfo[0]);
+                  if (cellId) {
+                    return html` <div>${roleName}: ${encodeHashToBase64(cellId[0])}</div> `;
+                  }
+                  return html``;
+                })}
+              </div>
             </div>
           `;
         })}
@@ -286,8 +273,10 @@ export class AdminWindow extends LitElement {
 
         .app-card {
           font-size: 25px;
+          flex: 1;
           padding: 0 30px;
-          height: 100px;
+          padding-bottom: 10px;
+          min-height: 100px;
           align-items: center;
           background: #e0e0e0;
           border-radius: 15px;
@@ -305,6 +294,16 @@ export class AdminWindow extends LitElement {
       `,
     ];
   }
+}
+
+export function getCellId(cellInfo: CellInfo): CellId | undefined {
+  if ('provisioned' in cellInfo) {
+    return cellInfo.provisioned.cell_id;
+  }
+  if ('cloned' in cellInfo) {
+    return cellInfo.cloned.cell_id;
+  }
+  return undefined;
 }
 
 // const selectAppInput = document.getElementById("select-app-input") as HTMLInputElement;
