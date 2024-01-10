@@ -34,7 +34,7 @@ import './components/password.ts';
 import { ExtendedAppInfo } from '../../main/sharedTypes';
 import { ElectronAPI } from '../../main/sharedTypes';
 
-const DEFAULT_PARTITION = '0.2.x';
+const DEFAULT_PARTITION = '0.3.x';
 declare global {
   interface Window {
     electronAPI: ElectronAPI;
@@ -217,31 +217,6 @@ export class AdminWindow extends LitElement {
               @click=${this.installApp}
             >
               Install app
-            </button>
-          </div>
-          <div class="column install-box">
-            <h2>Install KanDo</h2>
-            <div style="margin-bottom: 30px;">KanDo is an app for collaborative KanBan boards and available by default as an example app.</div>
-            <div style="margin-top: 10px; margin-bottom: 3px; font-size: 15px;">Choose a name for the KanDo instance<br>(You can install more than one instance of KanDo):</div>
-            <input
-              type="text"
-              placeholder="Custom App Name"
-              id="kando-id-input-field"
-              @input=${this.checkKandoInstallValidity}
-            />
-            <div style="margin-top: 10px; margin-bottom: 3px; font-size: 15px;">Choose a network seed (Optional):</div>
-            <input
-              type="text"
-              placeholder="Network Seed (optional)"
-              id="kando-network-seed-input-field"
-            />
-            <button
-              style="margin-top: 10px; height: 28px;"
-              id="install-app-button"
-              .disabled=${this.kandoInstallDisabled}
-              @click=${this.installKando}
-            >
-              Install
             </button>
           </div>
         </div>

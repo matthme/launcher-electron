@@ -1,5 +1,5 @@
 {
-  "name": "holochain-launcher-electron",
+  "name": "holochain-launcher-electron-prototype",
   "version": "0.0.2",
   "private": true,
   "description": "Holochain Launcher Electron (Prototype)",
@@ -23,7 +23,7 @@
   "dependencies": {
     "@electron-toolkit/preload": "^2.0.0",
     "@electron-toolkit/utils": "^2.0.0",
-    "@holochain/client": "^0.16.3",
+    "@holochain/client": "^0.17.0-dev.3",
     "bufferutil": "4.0.8",
     "hc-launcher-rust-utils": "file:./rust-utils/dist",
     "split": "1.0.1",

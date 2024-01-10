@@ -6,9 +6,9 @@ const binariesDirectory = app.isPackaged
   : path.join(app.getAppPath(), './resources/bins');
 
 const HOLOCHAIN_BINARIES = {
-  '0.2.3': path.join(
+  '0.3.0-beta-dev.29': path.join(
     binariesDirectory,
-    `holochain-v0.2.3${process.platform === 'win32' ? '.exe' : ''}`,
+    `holochain-v0.3.0-beta-dev.29${process.platform === 'win32' ? '.exe' : ''}`,
   ),
 };
 

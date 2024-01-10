@@ -128,6 +128,8 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('sign-zome-call', handleSignZomeCall);
   ipcMain.handle('open-app', async (_e, extendedAppInfo: ExtendedAppInfo) => {
+    console.log('@open-app: extendedAppInfo: ', extendedAppInfo);
+    console.log('@open-app: HOLOCHAIN_MANAGERS keys: ', Object.keys(HOLOCHAIN_MANAGERS));
     const holochainManager = HOLOCHAIN_MANAGERS[extendedAppInfo.partition];
     if (!holochainManager)
       throw new Error('Responsible Holochain Manager seems not to be running.');
@@ -273,7 +275,7 @@ function handleLaunch() {
       password,
       {
         type: 'built-in',
-        version: '0.2.3',
+        version: '0.3.0-beta-dev.29',
       },
       adminPort,
       lairUrl,
@@ -283,7 +285,7 @@ function handleLaunch() {
     );
     // ADMIN_PORT = holochainManager.adminPort;
     // ADMIN_WEBSOCKET = holochainManager.adminWebsocket;
-    HOLOCHAIN_MANAGERS['0.2.x'] = holochainManager;
+    HOLOCHAIN_MANAGERS['0.3.x'] = holochainManager;
 
     emitToWindow<RunningHolochain[]>(MAIN_WINDOW, 'holochain-ready', [
       {
