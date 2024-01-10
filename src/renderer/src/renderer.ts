@@ -240,6 +240,7 @@ export class AdminWindow extends LitElement {
                   if (cellId) {
                     return html` <div>${roleName}: ${encodeHashToBase64(cellId[0])}</div> `;
                   }
+                  return html``;
                 })}
               </div>
             </div>
