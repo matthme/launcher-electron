@@ -24,7 +24,7 @@ import { setupLogs } from './logs';
 import { DEFAULT_APPS_DIRECTORY, ICONS_DIRECTORY } from './paths';
 import { createHappWindow, createOrShowMainWindow } from './windows';
 import { LAIR_BINARY } from './binaries';
-import { ExtendedAppInfo, RunningHolochain } from './sharedTypes';
+import { ExtendedAppInfo, HolochainVersion, RunningHolochain } from './sharedTypes';
 
 const rustUtils = require('hc-launcher-rust-utils');
 // import * as rustUtils from 'hc-launcher-rust-utils';
@@ -46,6 +46,10 @@ parser.add_argument('-p', '--profile', {
   help: 'Opens the launcher with a custom profile instead of the default profile.',
   type: 'string',
 });
+parser.add_argument('--holochain-path', {
+  help: 'Path to a custom holochain binary to use.',
+  type: 'string',
+});
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -56,10 +60,15 @@ protocol.registerSchemesAsPrivileged([
 
 const allowedProfilePattern = /^[0-9a-zA-Z-]+$/;
 const args = parser.parse_args();
+console.log('GOT ARGS: ', args);
 if (args.profile && !allowedProfilePattern.test(args.profile)) {
   throw new Error(
     'The --profile argument may only contain digits (0-9), letters (a-z,A-Z) and dashes (-)',
   );
+}
+let CUSTOM_HOLOCHAIN_BINARY_PATH: string | undefined;
+if (args.holochain_path) {
+  CUSTOM_HOLOCHAIN_BINARY_PATH = args.holochain_path;
 }
 
 const isFirstInstance = app.requestSingleInstanceLock();
@@ -267,24 +276,28 @@ function handleLaunch() {
 
     const adminPort = await getPort();
 
+    const holochainVersion: HolochainVersion = CUSTOM_HOLOCHAIN_BINARY_PATH
+      ? { type: 'custom-path', path: CUSTOM_HOLOCHAIN_BINARY_PATH }
+      : { type: 'built-in', version: '0.3.0-beta-dev.29' };
+
+    const nonDefaultPartition = CUSTOM_HOLOCHAIN_BINARY_PATH ? 'customBinary' : undefined;
+
     // launch holochain
     const holochainManager = await HolochainManager.launch(
       LAUNCHER_EMITTER,
       LAUNCHER_FILE_SYSTEM,
       password,
-      {
-        type: 'built-in',
-        version: '0.3.0-beta-dev.29',
-      },
+      holochainVersion,
       adminPort,
       lairUrl,
       undefined,
       undefined,
-      undefined,
+      nonDefaultPartition,
     );
     // ADMIN_PORT = holochainManager.adminPort;
     // ADMIN_WEBSOCKET = holochainManager.adminWebsocket;
-    HOLOCHAIN_MANAGERS['0.3.x'] = holochainManager;
+    HOLOCHAIN_MANAGERS[nonDefaultPartition ? `partition#${nonDefaultPartition}` : '0.3.x'] =
+      holochainManager;
 
     emitToWindow<RunningHolochain[]>(MAIN_WINDOW, 'holochain-ready', [
       {
