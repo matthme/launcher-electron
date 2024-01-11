@@ -153,7 +153,9 @@ app.whenReady().then(async () => {
       if (!appId || appId === '') {
         throw new Error('No app id provided.');
       }
-      const holochainManager = HOLOCHAIN_MANAGERS[partition];
+      const holochainManager = CUSTOM_HOLOCHAIN_BINARY_PATH
+        ? HOLOCHAIN_MANAGERS['partition#customBinary']
+        : HOLOCHAIN_MANAGERS[partition];
       if (!holochainManager) {
         throw new Error(
           `No running Holochain Manager found for the specified partition: ${partition}`,
