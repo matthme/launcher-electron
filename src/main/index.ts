@@ -280,7 +280,7 @@ function handleLaunch() {
 
     const holochainVersion: HolochainVersion = CUSTOM_HOLOCHAIN_BINARY_PATH
       ? { type: 'custom-path', path: CUSTOM_HOLOCHAIN_BINARY_PATH }
-      : { type: 'built-in', version: '0.3.0-beta-dev.29' };
+      : { type: 'built-in', version: '0.3.0-beta-dev.32' };
 
     const nonDefaultPartition = CUSTOM_HOLOCHAIN_BINARY_PATH ? 'customBinary' : undefined;
 

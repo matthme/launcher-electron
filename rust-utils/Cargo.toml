@@ -8,12 +8,12 @@ crate-type = ["cdylib"]
 
 [dependencies]
 holochain_client = "0.5.0-dev.25"
-holochain_conductor_api = "0.3.0-beta-dev.30"
-holochain_integrity_types = "0.3.0-beta-dev.20"
-holochain_p2p = "0.3.0-beta-dev.28"
-holochain_types = "0.3.0-beta-dev.27"
-holochain_zome_types = "0.3.0-beta-dev.21"
-holo_hash = "0.3.0-beta-dev.17"
+holochain_conductor_api = "0.3.0-beta-dev.32"
+holochain_integrity_types = "0.3.0-beta-dev.22"
+holochain_p2p = "0.3.0-beta-dev.31"
+holochain_types = "0.3.0-beta-dev.29"
+holochain_zome_types = "0.3.0-beta-dev.23"
+holo_hash = "0.3.0-beta-dev.19"
 kitsune_p2p_timestamp = "0.3.0-beta-dev.5"
 lair_keystore_api = "0.3.0"
 
