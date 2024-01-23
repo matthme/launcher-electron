@@ -272,7 +272,7 @@ function handleLaunch() {
       password,
       {
         type: 'built-in',
-        version: '0.2.4',
+        version: '0.2.5-rc.0',
       },
       adminPort,
       lairUrl,
